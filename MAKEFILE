@@ -106,6 +106,6 @@ build\ext3_3.obj: src\work\misc\ext3_3.c
 
 clean:
 	del build\*.obj
-	del *.map
-	del pacwars.exe
+	del build\*.map
+	del build\pacwars.exe
 
