@@ -1,0 +1,29 @@
+BC_PATH  = C:\BORLANDC
+INC_PATH = $(BC_PATH)\INCLUDE
+LIB_PATH = $(BC_PATH)\LIB
+
+CC       = $(BC_PATH)\BIN\BCC.EXE
+LINKER   = $(BC_PATH)\BIN\TLINK.EXE
+
+CFLAGS   = -ml -c -v -I$(INC_PATH) -Isrc -nbuild
+LFLAGS   = /v /L$(LIB_PATH)
+
+TARGET   = PACWARS.EXE
+OBJS     = build\maze.obj build\home.obj
+
+all: $(TARGET)
+
+$(TARGET): $(OBJS)
+	$(LINKER) $(LFLAGS) c0l.obj $(OBJS), build\$(TARGET),, cl.lib   
+
+build\maze.obj: src\maze.c
+	$(CC) $(CFLAGS) src\maze.c
+
+build\home.obj: src\home.c
+	$(CC) $(CFLAGS) src\home.c
+
+clean:
+	del build\*.obj
+	del *.map
+	del pacwars.exe
+
