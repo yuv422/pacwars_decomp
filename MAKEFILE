@@ -3,24 +3,106 @@ INC_PATH = $(BC_PATH)\INCLUDE
 LIB_PATH = $(BC_PATH)\LIB
 
 CC       = $(BC_PATH)\BIN\BCC.EXE
+ASM      = $(BC_PATH)\BIN\TASM.EXE
 LINKER   = $(BC_PATH)\BIN\TLINK.EXE
 
 CFLAGS   = -ml -c -v -I$(INC_PATH) -Isrc -nbuild
 LFLAGS   = /v /L$(LIB_PATH)
 
 TARGET   = PACWARS.EXE
-OBJS     = build\maze.obj build\home.obj
+OBJS     = build\maze.obj build\mazeanim.obj build\spritgen.obj build\manedit.obj \
+           build\mazeedit.obj build\mazespt.obj build\mazeutil.obj build\mazedraw.obj \
+           build\mazecomm.obj build\mazeinit.obj build\mazereg.obj build\mvagraph.obj \
+           build\home.obj build\disppic.obj build\meditstr.obj build\hiscore.obj \
+           build\graph256.obj build\mem256.obj build\ipxc.obj build\ipxcomm.obj \
+           build\utils.obj build\criterr.obj build\invokoff.obj build\qdispoff.obj \
+           build\ext3_3.obj build\overlap.obj build\ipx.obj
 
 all: $(TARGET)
 
 $(TARGET): $(OBJS)
-	$(LINKER) $(LFLAGS) c0l.obj $(OBJS), build\$(TARGET),, cl.lib   
+	$(LINKER) $(LFLAGS) @link.rsp
+
+build\overlap.obj: src\overlap.asm
+	$(ASM) src\overlap.asm build\overlap.obj
+
+build\ipx.obj: src\ipx.asm
+	$(ASM) src\ipx.asm build\ipx.obj
 
 build\maze.obj: src\maze.c
 	$(CC) $(CFLAGS) src\maze.c
 
+build\mazeanim.obj: src\mazeanim.c
+	$(CC) $(CFLAGS) src\mazeanim.c
+
+build\spritgen.obj: src\spritgen.c
+	$(CC) $(CFLAGS) src\spritgen.c
+
+build\manedit.obj: src\manedit.c
+	$(CC) $(CFLAGS) src\manedit.c
+
+build\mazeedit.obj: src\mazeedit.c
+	$(CC) $(CFLAGS) src\mazeedit.c
+
+build\mazespt.obj: src\mazespt.c
+	$(CC) $(CFLAGS) src\mazespt.c
+
+build\mazeutil.obj: src\mazeutil.c
+	$(CC) $(CFLAGS) src\mazeutil.c
+
+build\mazedraw.obj: src\mazedraw.c
+	$(CC) $(CFLAGS) src\mazedraw.c
+
+build\mazecomm.obj: src\mazecomm.c
+	$(CC) $(CFLAGS) src\mazecomm.c
+
+build\mazeinit.obj: src\mazeinit.c
+	$(CC) $(CFLAGS) src\mazeinit.c
+
+build\mazereg.obj: src\mazereg.c
+	$(CC) $(CFLAGS) src\mazereg.c
+
+build\mvagraph.obj: src\mvagraph.c
+	$(CC) $(CFLAGS) src\mvagraph.c
+
 build\home.obj: src\home.c
 	$(CC) $(CFLAGS) src\home.c
+
+build\disppic.obj: src\disppic.c
+	$(CC) $(CFLAGS) src\disppic.c
+
+build\meditstr.obj: src\meditstr.c
+	$(CC) $(CFLAGS) src\meditstr.c
+
+build\hiscore.obj: src\hiscore.c
+	$(CC) $(CFLAGS) src\hiscore.c
+
+build\graph256.obj: src\graph256.c
+	$(CC) $(CFLAGS) src\graph256.c
+
+build\mem256.obj: src\mem256.c
+	$(CC) $(CFLAGS) src\mem256.c
+
+build\ipxc.obj: src\ipxc.c
+	$(CC) $(CFLAGS) src\ipxc.c
+
+build\ipxcomm.obj: src\ipxcomm.c
+	$(CC) $(CFLAGS) src\ipxcomm.c
+
+build\utils.obj: src\work\misc\utils.c
+	$(CC) $(CFLAGS) src\work\misc\utils.c
+
+build\criterr.obj: src\work\misc\criterr.c
+	$(CC) $(CFLAGS) src\work\misc\criterr.c
+
+build\invokoff.obj: src\work\misc\invokoff.c
+	$(CC) $(CFLAGS) src\work\misc\invokoff.c
+
+build\qdispoff.obj: src\work\misc\qdispoff.c
+	$(CC) $(CFLAGS) src\work\misc\qdispoff.c
+
+build\ext3_3.obj: src\work\misc\ext3_3.c
+	$(CC) $(CFLAGS) src\work\misc\ext3_3.c
 
 clean:
 	del build\*.obj
