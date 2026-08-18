@@ -285,4 +285,18 @@ typedef ANIM_ELEMENT far *ANIM_ELEMENT_PTR;
 typedef ANIM_SEQUENCE far *ANIM_SEQ_PTR;
 typedef VAR_STRUCT far *VAR_PTR;
 
+/*
+ * Shared core game-state globals. Confirmed via Ghidra xref analysis to be
+ * read/written from many modules (MAZE.C, IPXC.C, MAZEINIT.C, MAZEUTIL.C,
+ * MAZEEDIT.C, and others), so unlike a module-local static these need a
+ * real extern declaration here. Defined (storage allocated) in MAZE.C,
+ * alongside main()/pacwars(), the primary entry points that initialize them.
+ */
+extern int comms;                  /* nonzero when running as a network (IPX) game */
+extern REGISTER_STRUCT far * reg;  /* pointer to the loaded registration record */
+extern int pacman;                 /* index of the selected pacman character, 0-based */
+extern char curr_name[13];         /* current player's name, as entered/edited */
+extern unsigned int curr_score;    /* current player's score */
+extern int esc;                    /* set nonzero to signal "return to menu" from play */
+
 #endif /* PACWARS_H */
