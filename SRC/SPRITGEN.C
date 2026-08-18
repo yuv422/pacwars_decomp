@@ -126,27 +126,27 @@ void hlite(int status, int index, int xmargin, int ymargin, int w, int h, int xs
 {
 }
 
-void trbox(int x, int y, int w, int h, int colour)
+static void trbox(int x, int y, int w, int h, int colour)
 {
 }
 
-void trfbox(int x, int y, int w, int h, int colour)
+static void trfbox(int x, int y, int w, int h, int colour)
 {
 }
 
-void hline(int x, int y, int length, int colour)
+static void hline(int x, int y, int length, int colour)
 {
 }
 
-void vline(int x, int y, int length, int colour)
+static void vline(int x, int y, int length, int colour)
 {
 }
 
-void set_pixel(int x, int y, int colour)
+static void set_pixel(int x, int y, int colour)
 {
 }
 
-void read_sprite(char far * file_name)
+static void read_sprite(char far * file_name)
 {
 }
 
@@ -163,16 +163,16 @@ int write_sprite(int row, int col, SPRITE_STRUCT far * sprite)
     return 0;
 }
 
-void text256(int row, int col, SPRITE_STRUCT far * sprite)
+static void text256(int row, int col, SPRITE_STRUCT far * sprite)
 {
 }
 
-int load_palette(SPRITE_STRUCT far * sprite)
+static int load_palette(SPRITE_STRUCT far * sprite)
 {
     return 0;
 }
 
-void read_array(char far * file_name)
+static void read_array(char far * file_name)
 {
 }
 

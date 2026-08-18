@@ -37,7 +37,7 @@ int ReadPixel(int x, int y)
     return 0;
 }
 
-void DrawLine(int x1, int y1, int x2, int y2)
+static void DrawLine(int x1, int y1, int x2, int y2)
 {
 }
 
@@ -49,19 +49,19 @@ void DrawVLine(int x1, int y1, int height)
 {
 }
 
-void PolyLine(int num_points, POINT far * points)
+static void PolyLine(int num_points, POINT far * points)
 {
 }
 
-void Polygon(int num_points, POINT far * points)
+static void Polygon(int num_points, POINT far * points)
 {
 }
 
-void FillPolygon(int num_points, POINT far * points)
+static void FillPolygon(int num_points, POINT far * points)
 {
 }
 
-void FillLine(int x1, int y1, int x2, int y2, unsigned int far * data, int line)
+static void FillLine(int x1, int y1, int x2, int y2, unsigned int far * data, int line)
 {
 }
 
