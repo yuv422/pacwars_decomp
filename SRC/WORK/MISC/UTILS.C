@@ -19,6 +19,9 @@
 static char last_key_char;
 static char key_ready;
 
+/* storage for the __disp_page global declared extern in PACWARS.H */
+int __disp_page;
+
 int prog_init(void)
 {
     return 0;

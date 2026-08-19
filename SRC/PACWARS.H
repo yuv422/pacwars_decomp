@@ -299,4 +299,14 @@ extern char curr_name[13];         /* current player's name, as entered/edited *
 extern unsigned int curr_score;    /* current player's score */
 extern int esc;                    /* set nonzero to signal "return to menu" from play */
 
+/*
+ * Current VGA display page (0 or 1), selecting which half of the 0xA000
+ * segment the many low-level graphics primitives (drawing, blitting,
+ * text256, etc.) read/write to. Confirmed via Ghidra xref analysis to be
+ * referenced from dozens of functions across many different modules
+ * (MVAGRAPH.C-family drawing primitives, GRAPH256.C, DISPPIC.C, and more).
+ * Written by ch_disp_page() in UTILS.C, where it is also defined.
+ */
+extern int __disp_page;
+
 #endif /* PACWARS_H */
