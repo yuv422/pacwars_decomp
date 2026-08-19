@@ -44,7 +44,7 @@ void cls_256_screen(void)
     unsigned char far * rgen;
     unsigned int row;
 
-    rgen = (unsigned char far *) MK_FP(0xA000, __disp_page << 15);
+    rgen = (unsigned char far *) MK_FP(VGA_SEGMENT, __disp_page << 15);
     for (row = 0; row < (unsigned int) _max_y; row++) {
         memset(rgen, 0, _max_x);
         rgen += _sc_width;
@@ -55,7 +55,7 @@ void cls_row(int row)
 {
     unsigned char far * rgen;
 
-    rgen = (unsigned char far *) MK_FP(0xA000, (__disp_page << 15) + row * 8 * _max_x);
+    rgen = (unsigned char far *) MK_FP(VGA_SEGMENT, (__disp_page << 15) + row * 8 * _max_x);
     memset(rgen, 0, _max_x << 3);
 }
 
@@ -97,7 +97,7 @@ void hline(int x, int y, int length, int colour)
 {
     unsigned char far * rgen;
 
-    rgen = (unsigned char far *) MK_FP(0xA000, (__disp_page << 15) + y * 320 + x);
+    rgen = (unsigned char far *) MK_FP(VGA_SEGMENT, (__disp_page << 15) + y * 320 + x);
     memset(rgen, colour, length);
 }
 
@@ -106,7 +106,7 @@ void vline(int x, int y, int length, int colour)
     unsigned char far * rgen;
     int i;
 
-    rgen = (unsigned char far *) MK_FP(0xA000, (__disp_page << 15) + y * 320 + x);
+    rgen = (unsigned char far *) MK_FP(VGA_SEGMENT, (__disp_page << 15) + y * 320 + x);
     for (i = 0; i < length; i++) {
         *rgen = (unsigned char) colour;
         rgen += 320;
@@ -117,7 +117,7 @@ void set_pixel(int x, int y, int colour)
 {
     unsigned char far * rgen;
 
-    rgen = (unsigned char far *) MK_FP(0xA000, (__disp_page << 15) + y * 320 + x);
+    rgen = (unsigned char far *) MK_FP(VGA_SEGMENT, (__disp_page << 15) + y * 320 + x);
     *rgen = (unsigned char) colour;
 }
 
@@ -147,7 +147,7 @@ void text256(int x, int y, unsigned char far * text_ptr, int fore, int back)
     unsigned int row, col;
     unsigned char mask;
 
-    out_ptr = (unsigned char far *) MK_FP(0xA000, (__disp_page << 15) + y * 320 + x);
+    out_ptr = (unsigned char far *) MK_FP(VGA_SEGMENT, (__disp_page << 15) + y * 320 + x);
 
     while (*text_ptr != 0) {
         glyph = __text_table_addr[0] + (unsigned int) *text_ptr * __mva_text_height;
@@ -345,7 +345,7 @@ void drawline(int x1, int y1, int x2, int y2, int colour)
     xstep = (x2 < x1) ? -1 : 1;
     ystep = (y2 < y1) ? -1 : 1;
 
-    base = (unsigned char far *) MK_FP(0xA000, __disp_page << 15);
+    base = (unsigned char far *) MK_FP(VGA_SEGMENT, __disp_page << 15);
 
     minor = dy;
     major = dx;

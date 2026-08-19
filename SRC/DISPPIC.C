@@ -113,7 +113,7 @@ static int read_array(int pic, int far * fd)
     }
 
     for (plane = 0; plane < 4; plane++) {
-        dst = (unsigned char far *) MK_FP(0xA000, pic * 16000);
+        dst = (unsigned char far *) MK_FP(VGA_SEGMENT, pic * 16000);
         src = (unsigned char far *) block + plane;
 
         outportb(0x3C4, 2);
@@ -145,7 +145,7 @@ static int read_array_400(int far * fd)
     load_palette(fd);
 
     for (plane = 0; plane < 4; plane++) {
-        dst = (unsigned char far *) MK_FP(0xA000, 0);
+        dst = (unsigned char far *) MK_FP(VGA_SEGMENT, 0);
 
         outportb(0x3C4, 2);
         outportb(0x3C5, 1 << plane);
@@ -168,7 +168,7 @@ static int write_array_400(int far * fd)
     save_palette(fd);
 
     for (plane = 0; plane < 4; plane++) {
-        src = (unsigned char far *) MK_FP(0xA000, 0);
+        src = (unsigned char far *) MK_FP(VGA_SEGMENT, 0);
 
         outportb(0x3C4, 2);
         outportb(0x3C5, 1 << plane);
@@ -253,7 +253,7 @@ static void set_400(void)
     outportb(0x3C4, 2);
     outportb(0x3C5, 0x0F);
 
-    memset((void far *) MK_FP(0xA000, __disp_page << 15), 0, 64000);
+    memset((void far *) MK_FP(VGA_SEGMENT, __disp_page << 15), 0, 64000);
 
     outportb(0x3D4, 9);
     val = inportb(0x3D5);
