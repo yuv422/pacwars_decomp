@@ -7,6 +7,15 @@
  * taken from the debug info.
  */
 #include "MAZEUTIL.H"
+#include <string.h>
+
+/*
+ * Referenced only from get_filename() below (confirmed via Ghidra xref
+ * analysis), so file-scope here rather than exported. 140 bytes, holding
+ * one or more back-to-back null-terminated strings; its compiled-in
+ * default is just the marker "MAZEPATH" followed by zeroed/unused space.
+ */
+static char net_path[140] = "MAZEPATH";
 
 void set_clip_window(int status)
 {
@@ -134,6 +143,27 @@ void unk_func_180F(void)
 
 void get_filename(char far * file_name)
 {
+    char temp_name[13];
+
+    /*
+     * net_path holds a run of back-to-back null-terminated strings; this
+     * skips past net_path's *own* first string (its compiled-in default
+     * is just the marker "MAZEPATH") and reads whatever string
+     * immediately follows it in the buffer, then rebuilds file_name as
+     * that string + the originally-passed name appended on.
+     *
+     * I could not find anywhere in the program that writes a second
+     * string into net_path -- it isn't set_maze_path() (that function
+     * manipulates the DOS PATH environment variable for launching helper
+     * programs and never touches net_path at all) -- so I can't confirm
+     * what real value ends up here at runtime. With net_path left at its
+     * compiled-in default, the space right after "MAZEPATH\0" is just
+     * zero padding (an empty string), so as compiled, the net effect is
+     * simply "leave file_name unchanged."
+     */
+    strcpy(temp_name, file_name);
+    strcpy(file_name, net_path + 1 + strlen(net_path));
+    strcat(file_name, temp_name);
 }
 
 void beep_sound(unsigned int freq, int wait_length)

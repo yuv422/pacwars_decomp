@@ -8,6 +8,17 @@
  */
 #include "UTILS.H"
 
+/*
+ * Referenced from several keyboard-handling functions in this file
+ * (kb_event, read_key, push_kb, kb_flush, wait_kb, kb_press) but not
+ * declared anywhere in PACWARS.TXT's symbol tables -- unlike this
+ * project's other recovered globals, these two have no real recorded
+ * name, so the names below are inferred from their observed use in
+ * read_key() rather than recovered.
+ */
+static char last_key_char;
+static char key_ready;
+
 int prog_init(void)
 {
     return 0;
@@ -113,7 +124,24 @@ int kb_press(void)
 
 int read_key(void)
 {
-    return 0;
+    union REGS regs;
+    int got_key;
+
+    process_events();
+
+    /* DOS INT 21h, AH=06h (direct console I/O), DL=FFh: poll for a
+     * character without waiting. Returns with ZF set if none is ready,
+     * clear (with the character in AL) if one is. */
+    regs.h.ah = 0x06;
+    regs.h.dl = 0xff;
+    intdos(&regs, &regs);
+
+    got_key = (regs.x.flags & 0x40) == 0;
+    if (got_key) {
+        last_key_char = regs.h.al;
+        key_ready = 1;
+    }
+    return got_key;
 }
 
 void push_kb(int key)
@@ -154,6 +182,12 @@ void ch_disp_page(int page_num)
 
 void set_mode(unsigned char mode)
 {
+    union REGS regs;
+
+    /* BIOS INT 10h, AH=00h: set video mode (AL = mode) */
+    regs.h.ah = 0;
+    regs.h.al = mode;
+    int86(0x10, &regs, &regs);
 }
 
 int size_screen(int size)
