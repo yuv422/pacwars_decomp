@@ -1,4 +1,4 @@
-.model tiny
+.model large
 .data
 .code
 end

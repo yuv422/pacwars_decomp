@@ -1,4 +1,4 @@
-.model tiny
+.model large
 .data
 
 NETWARE_INT_7A_FUNC DD 0h
