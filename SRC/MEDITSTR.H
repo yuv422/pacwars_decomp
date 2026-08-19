@@ -10,7 +10,9 @@
 #include "PACWARS.H"
 
 typedef enum {
-	pacman = 0x490
+	pacman_t = 0x490,
+    name_t = 0x491,
+    score_t = 0x493,
 } EDIT_TYPE;
 
 int edit_str(unsigned int far * inkey, unsigned int far * ext, int row, int col, char far * char_str, EDIT_TYPE type, int display);
