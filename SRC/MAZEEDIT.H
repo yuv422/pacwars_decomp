@@ -10,6 +10,7 @@
 #include "PACWARS.H"
 
 int alloc_maze_def_mem(void);
+int alloc_maze_editor_mem(void);
 int pacwars_menu(int curr_option);
 int choose_edit_maze(int far * hoff, int far * voff);
 void edit_maze(int curr_hoff, int curr_voff);

@@ -169,11 +169,14 @@ void overlap_sprite(SPRITE_STRUCT far * s1, SPRITE_STRUCT far * s2, int attrib)
 {
 }
 
-/* TODO: real name not recoverable from PACWARS.TXT for this local
-   function (module's type-def list is shorter than its true local-
-   function count) -- offset 131E:2E86. Verify/rename by
-   cross-referencing the Ghidra project. */
-void unk_func_2E86(void)
+/*
+ * Was generated as a placeholder unk_func_2E86 (see MAZESPT.H's earlier
+ * gap note): its module's type-def list didn't record this function at
+ * all. Resolved via the Ghidra project while decompiling _main(), which
+ * calls this: confirmed exported as `_setup_ir_sprite_buffer` at
+ * 131E:2E86 (dump) / 231e:2e86 (Ghidra), returns void, no parameters.
+ */
+void setup_ir_sprite_buffer(void)
 {
 }
 

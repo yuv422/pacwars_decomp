@@ -44,5 +44,6 @@ void init_token(MAZE_LOG_STRUCT far * maze_log);
 void init_man(int station_num, MAZE_LOG_STRUCT far * maze_log);
 void init_position(int far * hoff, int far * voff, int far * x, int far * y);
 void overlap_sprite(SPRITE_STRUCT far * s1, SPRITE_STRUCT far * s2, int attrib);
+void setup_ir_sprite_buffer(void);
 
 #endif /* MAZESPT_H */

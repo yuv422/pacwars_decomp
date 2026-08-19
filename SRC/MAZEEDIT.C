@@ -13,6 +13,20 @@ int alloc_maze_def_mem(void)
     return 0;
 }
 
+/*
+ * Missing entirely from the original stub generation pass (not even an
+ * unk_func_ placeholder) -- its module's type-def list happened to have
+ * exactly enough names to cover the rest of this file's local-function
+ * count, so this address was silently never matched to any name.
+ * Resolved via the Ghidra project while decompiling _main(), which calls
+ * this: confirmed exported as `_alloc_maze_editor_mem` at 0F61:00A9
+ * (dump) / 1f61:00a9 (Ghidra), returns signed int, no parameters.
+ */
+int alloc_maze_editor_mem(void)
+{
+    return 0;
+}
+
 void display_menu_pacmen(void)
 {
 }
