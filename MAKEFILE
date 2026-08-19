@@ -7,7 +7,7 @@ ASM      = $(BC_PATH)\BIN\TASM.EXE
 LINKER   = $(BC_PATH)\BIN\TLINK.EXE
 
 CFLAGS   = -ml -c -v -I$(INC_PATH) -Isrc -Isrc\work\misc -nbuild -w-par
-LFLAGS   = /v /L$(LIB_PATH)
+LFLAGS   = /v /c /L$(LIB_PATH)
 
 TARGET   = PACWARS.EXE
 OBJS     = build\maze.obj build\mazeanim.obj build\spritgen.obj build\manedit.obj \

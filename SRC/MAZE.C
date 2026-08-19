@@ -42,7 +42,7 @@ char curr_name[13];
 unsigned int curr_score;
 int esc;
 
-void main(int argc, char far * far * argv)
+void main(int argc, char *argv[])
 {
     char pacman_img[128] = "PACMAN.IMG";
     char pacman2_img[128] = "PACMAN2.IMG";
