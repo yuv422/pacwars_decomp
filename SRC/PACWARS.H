@@ -309,4 +309,28 @@ extern int esc;                    /* set nonzero to signal "return to menu" fro
  */
 extern int __disp_page;
 
+/*
+ * Logical screen/viewport dimensions used by the clipping-aware low-level
+ * graphics primitives (fill, blit, sprite, and scoreboard code) across many
+ * modules. Written by set_clip_window() in MAZEUTIL.C, where they are also
+ * defined.
+ */
+extern int _max_x;     /* current viewport width, in pixels */
+extern int _max_y;     /* current viewport height, in pixels */
+extern int _sc_width;  /* row stride (bytes) used when clearing/scrolling */
+
+/*
+ * The 256-colour bitmap font subsystem shared by GRAPH256.C's text256() and
+ * the (not yet decompiled) MVAGRAPH.C text/font routines (SetTextFont,
+ * LoadGraphFont, SaveGraphFont, ByteGraphText and friends). Confirmed via
+ * Ghidra xref analysis to be referenced from many modules. Defined in
+ * GRAPH256.C for now, since it's the first module to need them; the real
+ * "owner" (SetTextFont, which presumably populates _text_table_addr) lives
+ * in MVAGRAPH.C and hasn't been decompiled yet.
+ */
+extern unsigned char far * _GraphFontBuffer;       /* loaded font bitmap data */
+extern int __mva_text_height;                      /* glyph height, in rows */
+extern int __mva_text_width;                       /* glyph width, in columns */
+extern unsigned char far * __text_table_addr[2];   /* font table(s), indexed by SetTextFont's selection */
+
 #endif /* PACWARS_H */

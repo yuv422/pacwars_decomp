@@ -17,6 +17,13 @@
  */
 static char net_path[140] = "MAZEPATH";
 
+/* storage for the _max_x/_max_y/_sc_width globals declared extern in
+   PACWARS.H; set_clip_window() itself is still a stub pending its own
+   decompilation pass. */
+int _max_x;
+int _max_y;
+int _sc_width;
+
 void set_clip_window(int status)
 {
 }
