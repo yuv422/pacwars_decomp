@@ -22,6 +22,12 @@ static char key_ready;
 /* storage for the __disp_page global declared extern in PACWARS.H */
 int __disp_page;
 
+/* storage for the __mvarows/__mvacols globals declared extern in
+   PACWARS.H; given their initial values by load_mvaenv()/size_screen(),
+   both still stubs pending their own decompilation pass. */
+int __mvarows;
+int __mvacols;
+
 int prog_init(void)
 {
     return 0;
@@ -221,6 +227,10 @@ void cls_line(int row, int col, int length)
 void set_border(unsigned char colour)
 {
 }
+
+/* storage for the _char_attrib global declared extern in PACWARS.H;
+   set_colour() itself is still a stub pending its own decompilation pass. */
+unsigned char _char_attrib;
 
 void set_colour(unsigned char fore, unsigned char back)
 {

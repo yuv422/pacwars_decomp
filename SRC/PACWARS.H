@@ -326,16 +326,52 @@ extern int _sc_width;  /* row stride (bytes) used when clearing/scrolling */
 
 /*
  * The 256-colour bitmap font subsystem shared by GRAPH256.C's text256() and
- * the (not yet decompiled) MVAGRAPH.C text/font routines (SetTextFont,
- * LoadGraphFont, SaveGraphFont, ByteGraphText and friends). Confirmed via
- * Ghidra xref analysis to be referenced from many modules. Defined in
- * GRAPH256.C for now, since it's the first module to need them; the real
- * "owner" (SetTextFont, which presumably populates _text_table_addr) lives
- * in MVAGRAPH.C and hasn't been decompiled yet.
+ * MVAGRAPH.C's text/font routines (SetTextFont, LoadGraphFont,
+ * SaveGraphFont, ByteGraphText and friends). Confirmed via Ghidra xref
+ * analysis to be referenced from many modules. Defined in GRAPH256.C for
+ * now, since it was the first module to need them; the real "owner"
+ * (SetTextFont, in MVAGRAPH.C) populates __text_table_addr/_GraphFontBuffer
+ * but doesn't allocate their storage.
  */
 extern unsigned char far * _GraphFontBuffer;       /* loaded font bitmap data */
 extern int __mva_text_height;                      /* glyph height, in rows */
 extern int __mva_text_width;                       /* glyph width, in columns */
 extern unsigned char far * __text_table_addr[2];   /* font table(s), indexed by SetTextFont's selection */
+
+/*
+ * Current drawing colour/attribute (low nibble = 16-colour EGA/VGA
+ * attribute) used by MVAGRAPH.C's planar-mode primitives (DrawLine,
+ * DrawHLine, DrawVLine, Circle, Ellipse, Arc, and more) and referenced
+ * from several other modules besides. Written by set_colour() in
+ * UTILS.C, where it is also defined.
+ */
+extern unsigned char _char_attrib;
+
+/*
+ * Number of bytes per scanline row in MVAGRAPH.C's EGA/VGA planar drawing
+ * mode. The original code reads this directly out of the BIOS Data Area
+ * (0040:004A, "number of screen columns") rather than tracking its own
+ * copy -- for the 640-pixel-wide planar mode these primitives draw into,
+ * that BIOS word happens to already equal the needed byte stride (640/8).
+ */
+#define MVA_ROW_STRIDE (*(unsigned int far *) MK_FP(0x0040, 0x004A))
+
+/*
+ * Text-mode screen size, in character rows/columns. Confirmed via Ghidra
+ * xref analysis to be read/written from many UTILS.C functions (cls_screen,
+ * size_screen, std_form, the F-key status bars, and more) as well as
+ * written by SetTextFont() in MVAGRAPH.C when switching into graphics-mode
+ * text. Written (and given its initial value) by load_mvaenv()/
+ * size_screen() in UTILS.C, where storage is also defined.
+ */
+extern int __mvarows;
+extern int __mvacols;
+
+/*
+ * Graphics-mode text state, both written by SetGraphText()/SetTextFont()
+ * in MVAGRAPH.C, where they are also defined.
+ */
+extern int __mva_graph_text;   /* nonzero once graphics-mode text has been selected (SetGraphText) */
+extern int __mva_text_table;   /* index of the font table last selected via SetTextFont (0, 1, 2, or 4) */
 
 #endif /* PACWARS_H */

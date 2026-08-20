@@ -21,7 +21,7 @@ void hilite_pacman(int status, int pacman);
 int choose_pacman(int curr_pacman);
 void disp_hiscore(int sp_off, HISCORE far * hiscore);
 int copy_protect(void);
-void mk_filename(void);
+void mk_filename(int a, int b, char far * file_name);
 void pause_time(void);
 void draw_scoreboard(void);
 void show_selected(int status, int selected);
@@ -29,6 +29,6 @@ void fill_scoreboard(int i, MAZE_LOG_STRUCT far * maze_log, int offset);
 void update_radar(int offset, MAZE_LOG_STRUCT far * maze_log, int gold_present, int token_present);
 void get_filename(char far * file_name);
 void beep_sound(unsigned int freq, int wait_length);
-void memcpyb(void);
+void memcpyb(unsigned char far * dest, unsigned char far * source, int width);
 
 #endif /* MAZEUTIL_H */

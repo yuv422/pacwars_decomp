@@ -104,7 +104,14 @@ int copy_protect(void)
     return 0;
 }
 
-void mk_filename(void)
+/*
+ * Real signature recovered from its call sites in MVAGRAPH.C's
+ * LoadGraphFont()/SaveGraphFont() (which pass (1, 0, file_name)) --
+ * Ghidra's own guess at this function's signature was a bare `void(void)`,
+ * contradicted by every call site's raw argument pushes. Body still a
+ * stub pending its own decompilation pass.
+ */
+void mk_filename(int a, int b, char far * file_name)
 {
 }
 
@@ -177,7 +184,20 @@ void beep_sound(unsigned int freq, int wait_length)
 {
 }
 
-void memcpyb(void)
+/*
+ * Real signature recovered from its call site in MVAGRAPH.C's
+ * copy_screen() (a far-pointer-to-far-pointer byte copy, intended for use
+ * under VGA write mode 1, where a read latches all 4 planes so a plain
+ * byte-at-a-time copy would transfer whole pixels).
+ *
+ * Confirmed via Ghidra disassembly that this function's body in the
+ * shipped binary is genuinely empty -- just the standard prologue, stack
+ * overflow check, and epilogue, no actual copy loop. This isn't a gap in
+ * the decompilation; copy_screen() (and by extension GraphBoxScroll()'s
+ * scrolling box fill/erase in MVAGRAPH.C, its only caller) really did
+ * ship with a no-op copy in PACWARS.EXE. Left empty here to match.
+ */
+void memcpyb(unsigned char far * dest, unsigned char far * source, int width)
 {
 }
 
