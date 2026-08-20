@@ -299,6 +299,26 @@ extern char curr_name[13];         /* current player's name, as entered/edited *
 extern unsigned int curr_score;    /* current player's score */
 extern int esc;                    /* set nonzero to signal "return to menu" from play */
 
+/*
+ * Current room/viewport offset within the maze (which 25x30 "page" of the
+ * overall maze is currently on screen). Confirmed via Ghidra xref
+ * analysis to be read from many modules (MAZE.C and the maze-drawing
+ * family) and written by the maze editor (MAZEEDIT.C). Defined in
+ * MAZE.C, alongside the other shared game-state globals above.
+ */
+extern int _hoffset;
+extern int _voffset;
+
+/*
+ * Master sprite table -- one SPRITE_STRUCT per possible sprite index (see
+ * SPRITE_STRUCT_tag above), populated by load_all_sprites() in
+ * ALLOC_BLOCK_MEM.C (not yet decompiled) from the game's sprite data
+ * files. Referenced from many modules. Storage is defined in MAZEDRAW.C
+ * for now, since it was the first module to need it; the real "owner"
+ * (load_all_sprites) populates it but doesn't allocate its storage.
+ */
+extern SPRITE_STRUCT _sprites[1249];
+
 /* Segment of VGA display memory (mode 0x13 and the "mode 400" 4-plane
    layouts alike), as used throughout DISPPIC.C and GRAPH256.C. */
 #define VGA_SEGMENT 0xA000

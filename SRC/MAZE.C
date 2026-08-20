@@ -41,6 +41,8 @@ int pacman;
 char curr_name[13];
 unsigned int curr_score;
 int esc;
+int _hoffset;
+int _voffset;
 
 void main(int argc, char *argv[])
 {
