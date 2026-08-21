@@ -32,6 +32,22 @@ void room_animation(unsigned int sync, int hoff, int voff)
 {
 }
 
+/*
+ * Gap fill: see the comment in MAZEANIM.H. Real address 1a54:05bc, not
+ * yet decompiled.
+ */
+void clear_room_animation(unsigned int sync, int hoff, int voff)
+{
+}
+
+/*
+ * Gap fill: see the comment in MAZEANIM.H. Real address 1a54:00d7, not
+ * yet decompiled.
+ */
+void update_map_animation(unsigned int sync)
+{
+}
+
 void room_frame(unsigned int sync, ANIM_OB far * obj, MAZE_STRUCT far * maze_ptr)
 {
 }

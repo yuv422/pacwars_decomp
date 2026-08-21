@@ -46,4 +46,12 @@ void init_position(int far * hoff, int far * voff, int far * x, int far * y);
 void overlap_sprite(SPRITE_STRUCT far * s1, SPRITE_STRUCT far * s2, int attrib);
 void setup_ir_sprite_buffer(void);
 
+/*
+ * 16-entry IR-noise buffer table filled by setup_ir_sprite_buffer(); also
+ * consumed by create_ir_sprite() (MAZE.C), which is why this is exported
+ * here rather than kept static in MAZESPT.C (see the comment above its
+ * definition there).
+ */
+extern SPRITE_STRUCT _ir_sprite_buf[16];
+
 #endif /* MAZESPT_H */

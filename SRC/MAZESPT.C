@@ -1360,13 +1360,15 @@ void overlap_sprite(SPRITE_STRUCT far * s1, SPRITE_STRUCT far * s2, int attrib)
  * NOTE: the copy loop always runs a fixed 256 (0x100) iterations
  * regardless of the actual allocated size (src spritew*spriteh, which
  * may be smaller or larger than 256) -- preserved exactly as compiled.
- * The destination buffer table (DAT_340e_702d in the decompile) is
- * referenced only from this function (confirmed via get_xrefs_to), so
- * it's declared file-local here; SPRITE_STRUCT is reused purely for its
+ * The destination buffer table (DAT_340e_702d in the decompile) is NOT
+ * file-local: create_ir_sprite() (MAZE.C) also reads it (confirmed via a
+ * fresh get_xrefs_to once that function was decompiled), so it's declared
+ * here (matching its real owner, this file) but exported via MAZESPT.H
+ * rather than kept static. SPRITE_STRUCT is reused purely for its
  * confirmed 11-byte stride, even though only the .sprite field is ever
  * populated.
  */
-static SPRITE_STRUCT _ir_sprite_buf[16];
+SPRITE_STRUCT _ir_sprite_buf[16];
 
 void setup_ir_sprite_buffer(void)
 {
