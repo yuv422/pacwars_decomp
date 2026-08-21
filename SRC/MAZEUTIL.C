@@ -31,14 +31,11 @@ int _max_x;
 int _max_y;
 int _sc_width;
 
-/* storage for the _VSIZE/_HSIZE/_wstation/_maze/_maze_attrib/_animate_maze
-   globals declared extern in PACWARS.H -- see the comments there. Real
-   owner of _VSIZE/_HSIZE/_maze/_maze_attrib is alloc_maze_def_mem() in
-   MAZEEDIT.C (not yet decompiled); _wstation's and _animate_maze's real
-   write sites were not identified. Defined here for now, as the first
-   module needing them. */
-int _VSIZE;
-int _HSIZE;
+/* storage for the _wstation global declared extern in PACWARS.H --
+   _VSIZE/_HSIZE/_maze/_maze_attrib's real owners (choose_edit_maze /
+   alloc_maze_def_mem, MAZEEDIT.C) are now decompiled, so their storage
+   moved there; _wstation's and _animate_maze's real write sites are
+   still unidentified, so they stay here for now. */
 int _wstation;
 
 /* storage for the f1 global declared extern in PACWARS.H */
@@ -54,8 +51,10 @@ int _visible_count;
 
 /* storage for the edit_name_flag global declared extern in PACWARS.H */
 int edit_name_flag;
-void far * _maze[4][3];
-void far * _maze_attrib[4][3];
+
+/* _maze/_maze_attrib's real owner (alloc_maze_def_mem, MAZEEDIT.C) is now
+   decompiled, so their storage lives there; _animate_maze's allocation
+   site is still unidentified, so it stays here for now. */
 ANIM_OB far * _animate_maze[4][3];
 
 /* forward declarations: update_map() (below) calls maze_def(),

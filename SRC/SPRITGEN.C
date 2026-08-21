@@ -12,6 +12,18 @@ void sprite_gen(int num_sprites, char far * far * sprite_files)
 {
 }
 
+/*
+ * Missing entirely from the original stub generation pass -- see the
+ * comment in SPRITGEN.H. Stubbed here pending full decompilation.
+ */
+void copy_sprite_range_to_gen(int row_offset, int col_offset, SPRITE_STRUCT far * sprite)
+{
+}
+
+void copy_gen_to_sprite_range(int row_offset, int col_offset, SPRITE_STRUCT far * sprite)
+{
+}
+
 void save_routine(char far * file_name)
 {
 }

@@ -332,6 +332,18 @@ extern int _visible_count;
 extern int edit_name_flag;
 
 /*
+ * Scratch working-copy buffers used by the maze editor (MAZEEDIT.C):
+ * maze_buff/maze_abuff hold the currently-edited room's maze/attribute
+ * grids, undo_buff/undo_abuff hold a pre-edit snapshot of the same for
+ * undo_block(). Each is MAZE_STRUCT-sized (1500 bytes), allocated by
+ * alloc_maze_editor_mem(). Storage defined in MAZEEDIT.C.
+ */
+extern MAZE_STRUCT far * _maze_buff;
+extern MAZE_STRUCT far * _maze_abuff;
+extern MAZE_STRUCT far * _undo_buff;
+extern MAZE_STRUCT far * _undo_abuff;
+
+/*
  * Current room/viewport offset within the maze (which 25x30 "page" of the
  * overall maze is currently on screen). Confirmed via Ghidra xref
  * analysis to be read from many modules (MAZE.C and the maze-drawing
@@ -346,9 +358,10 @@ extern int _voffset;
  * is, in units of the 25x30-cell pages indexed by _maze/_maze_attrib/
  * _animate_maze below) and the local "workstation" slot index used to pick
  * this machine's entry out of the 5-slot network arrays (MAZE_LOG_STRUCT
- * etc). _VSIZE/_HSIZE are written by alloc_maze_def_mem() in MAZEEDIT.C
- * (not yet decompiled); _wstation's write site was not found via xref
- * analysis (likely set during IPX/network session setup). Storage defined
+ * etc). _VSIZE/_HSIZE are written by choose_edit_maze() (MAZEEDIT.C, the
+ * maze editor's "how big a maze do you want" screen); storage for both is
+ * defined in MAZEEDIT.C. _wstation's write site was not found via xref
+ * analysis (likely set during IPX/network session setup); storage defined
  * in MAZEUTIL.C for now, as the first module needing it.
  */
 extern int _VSIZE;
@@ -356,16 +369,45 @@ extern int _HSIZE;
 extern int _wstation;
 
 /*
+ * Scroll offset (in room-grid rows) for the maze editor's room-grid
+ * picker screen (choose_edit_maze(), MAZEEDIT.C) -- at most 2 rows of
+ * rooms are shown at once, out of up to 4 (_VSIZE). Storage defined in
+ * MAZEEDIT.C, its real owner (confirmed via get_xrefs_to: read/written
+ * only by choose_edit_maze/display_rooms/get_room_pos/display_scroll,
+ * all in MAZEEDIT.C).
+ */
+extern int _room_offset;
+
+/*
+ * Block-copy/move clipboard state for the maze editor's block_menu()
+ * (MAZEEDIT.C): _maze_srow/_maze_scol/_maze_erow/_maze_ecol are the
+ * normalized (top-left/bottom-right) bounds of the last block range
+ * marked via store_block(), and _undo_hoff/_undo_voff identify which
+ * room that range belongs to (so undo_block() can tell whether an undo
+ * is still valid for the room currently being edited). Storage defined
+ * in MAZEEDIT.C, confirmed via get_xrefs_to to be used only by
+ * MAZEEDIT.C's block_menu/store_block/restore_block/undo_block/
+ * copy_block.
+ */
+extern int _maze_srow;
+extern int _maze_scol;
+extern int _maze_erow;
+extern int _maze_ecol;
+extern int _undo_hoff;
+extern int _undo_voff;
+
+/*
  * Per-room-grid-cell far pointers to the maze/attribute/animation data for
  * each of the game's rooms, indexed [voff][hoff]. Allocated (4 rows x 3
  * cols, each MAZE_STRUCT-sized: 25*30*2 = 0x5dc bytes) by
- * alloc_maze_def_mem() in MAZEEDIT.C (not yet decompiled) via calloc();
- * confirmed via disassembly of that function (the decompiler mis-split
- * each far pointer store into two separate 16-bit "DAT_" writes -- one for
- * the offset half, one for the segment half two bytes later -- rather than
+ * alloc_maze_def_mem() in MAZEEDIT.C via calloc(); confirmed via
+ * disassembly of that function (the decompiler mis-split each far pointer
+ * store into two separate 16-bit "DAT_" writes -- one for the offset
+ * half, one for the segment half two bytes later -- rather than
  * recognizing a single far-pointer array, a known decompiler limitation
- * for this binary). _animate_maze's allocation site was not identified
- * (only read from update_map()); the same [voff][hoff] indexing/stride is
+ * for this binary). Storage for _maze/_maze_attrib is defined in
+ * MAZEEDIT.C. _animate_maze's allocation site was not identified (only
+ * read from update_map()); the same [voff][hoff] indexing/stride is
  * confirmed by that read site's disassembly. Storage defined in
  * MAZEUTIL.C for now, as the first module needing it.
  */

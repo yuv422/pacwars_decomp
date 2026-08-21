@@ -53,7 +53,17 @@ int get_mirror_sprite_data(int curr_pacman, int edit_pos, int edit_horiz)
     return 0;
 }
 
-void edit_screen1(void)
+/*
+ * NOTE: the PACWARS.TXT-derived stub generator mis-assigned this
+ * module-local function the name "edit_screen1" -- that name actually
+ * belongs to MAZEEDIT.C's edit_screen1() (confirmed decompiled at
+ * 1f61:2571, the maze editor's title-box drawer; Ghidra only has one
+ * function named edit_screen1, and it's that one), which caused a
+ * duplicate-symbol link error once MAZEEDIT.C's real body was written.
+ * Renamed here to a placeholder pending MANEDIT.C's own decompilation
+ * pass, which should identify this function's real name/address.
+ */
+void unk_func_manedit_1(void)
 {
 }
 
@@ -65,11 +75,23 @@ void display_edit_pacman(int curr_pacman, int init, int offset)
 {
 }
 
-void display_save(int status)
+/*
+ * NOTE: same stub-generator name collision as unk_func_manedit_1() above
+ * -- "display_save" actually belongs to MAZEEDIT.C's display_save()
+ * (decompiled at 1f61:2673). Renamed to a placeholder pending MANEDIT.C's
+ * own decompilation pass.
+ */
+void unk_func_manedit_2(int status)
 {
 }
 
-void display_filestatus(int status, int type)
+/*
+ * NOTE: same stub-generator name collision -- "display_filestatus"
+ * actually belongs to MAZEEDIT.C's display_filestatus() (decompiled at
+ * 1f61:2748). Renamed to a placeholder pending MANEDIT.C's own
+ * decompilation pass.
+ */
+void unk_func_manedit_3(int status, int type)
 {
 }
 
