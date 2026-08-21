@@ -143,10 +143,9 @@ typedef struct ANIM_OB_tag {
     char voffset;
     char row;
     char col;
-    int offset;
+    char offset;
     char animate;
     char redraw;
-    int prev_frame;
     int far * prev_frame_buffer;
 } ANIM_OB;
 
@@ -300,6 +299,39 @@ extern unsigned int curr_score;    /* current player's score */
 extern int esc;                    /* set nonzero to signal "return to menu" from play */
 
 /*
+ * F1-pressed latch, set by a key-vector interrupt handler installed in
+ * edit_name() (MAZEUTIL.C) and consumed/reset by choose_pacman()
+ * (MAZEUTIL.C) to bring up f1_instructions() without waiting for the next
+ * normal read_key() poll. Storage defined in MAZEUTIL.C.
+ */
+extern int f1;
+
+/*
+ * Remaining-duration counters for the local workstation's active
+ * power-ups, shown as small numbered icons on the scoreboard by
+ * fill_scoreboard() (MAZEUTIL.C). Real owner not yet identified (no
+ * write site found via xref analysis in the modules decompiled so far);
+ * storage defined in MAZEUTIL.C for now, as the first module needing them.
+ */
+extern int _warp_count;
+extern int _shield_count;
+extern int _grenade_count;
+extern int _ishot_count;
+extern int _missile_count;
+extern int _visible_count;
+
+/*
+ * Set to request that choose_pacman() (MAZEUTIL.C) immediately prompt for
+ * a name edit the next time it runs, before its normal high-score-beaten
+ * check. No write site was found anywhere in the modules decompiled so
+ * far via Ghidra xref analysis (the reference in choose_pacman() itself
+ * didn't turn up as an xref target either, likely a decompiler/analysis
+ * gap rather than truly dead data, since choose_pacman() both reads and
+ * clears it). Storage defined in MAZEUTIL.C for now.
+ */
+extern int edit_name_flag;
+
+/*
  * Current room/viewport offset within the maze (which 25x30 "page" of the
  * overall maze is currently on screen). Confirmed via Ghidra xref
  * analysis to be read from many modules (MAZE.C and the maze-drawing
@@ -308,6 +340,38 @@ extern int esc;                    /* set nonzero to signal "return to menu" fro
  */
 extern int _hoffset;
 extern int _voffset;
+
+/*
+ * Room-grid dimensions (how many rooms wide/tall the currently-loaded maze
+ * is, in units of the 25x30-cell pages indexed by _maze/_maze_attrib/
+ * _animate_maze below) and the local "workstation" slot index used to pick
+ * this machine's entry out of the 5-slot network arrays (MAZE_LOG_STRUCT
+ * etc). _VSIZE/_HSIZE are written by alloc_maze_def_mem() in MAZEEDIT.C
+ * (not yet decompiled); _wstation's write site was not found via xref
+ * analysis (likely set during IPX/network session setup). Storage defined
+ * in MAZEUTIL.C for now, as the first module needing it.
+ */
+extern int _VSIZE;
+extern int _HSIZE;
+extern int _wstation;
+
+/*
+ * Per-room-grid-cell far pointers to the maze/attribute/animation data for
+ * each of the game's rooms, indexed [voff][hoff]. Allocated (4 rows x 3
+ * cols, each MAZE_STRUCT-sized: 25*30*2 = 0x5dc bytes) by
+ * alloc_maze_def_mem() in MAZEEDIT.C (not yet decompiled) via calloc();
+ * confirmed via disassembly of that function (the decompiler mis-split
+ * each far pointer store into two separate 16-bit "DAT_" writes -- one for
+ * the offset half, one for the segment half two bytes later -- rather than
+ * recognizing a single far-pointer array, a known decompiler limitation
+ * for this binary). _animate_maze's allocation site was not identified
+ * (only read from update_map()); the same [voff][hoff] indexing/stride is
+ * confirmed by that read site's disassembly. Storage defined in
+ * MAZEUTIL.C for now, as the first module needing it.
+ */
+extern void far * _maze[4][3];
+extern void far * _maze_attrib[4][3];
+extern ANIM_OB far * _animate_maze[4][3];
 
 /*
  * Master sprite table -- one SPRITE_STRUCT per possible sprite index (see
