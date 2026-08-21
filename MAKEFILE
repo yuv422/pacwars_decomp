@@ -24,10 +24,10 @@ $(TARGET): $(OBJS)
 	$(LINKER) $(LFLAGS) @link.rsp
 
 build\overlap.obj: src\overlap.asm
-	$(ASM) src\overlap.asm build\overlap.obj
+	$(ASM) /ml src\overlap.asm build\overlap.obj
 
 build\ipx.obj: src\ipx.asm
-	$(ASM) src\ipx.asm build\ipx.obj
+	$(ASM) /ml src\ipx.asm build\ipx.obj
 
 build\maze.obj: src\maze.c
 	$(CC) $(CFLAGS) src\maze.c

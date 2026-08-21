@@ -369,6 +369,27 @@ extern int _HSIZE;
 extern int _wstation;
 
 /*
+ * Global comms/UI flags used across many modules (network multiplayer
+ * flag and an ESC-was-pressed abort flag, respectively). Confirmed via
+ * get_xrefs_to to be read/written from many modules already decompiled
+ * (MAIN/MAZEEDIT/MANEDIT/etc). Storage defined in MAZESPT.C for now, as
+ * the first module in this decompilation pass to need it.
+ */
+extern int _comms;
+extern int _esc;
+
+/*
+ * Countdown/state globals for the "spike" hazard tile type: _spike holds
+ * the current spike tile's attribute-check return value (set elsewhere,
+ * read by test_for_block()/testy() in MAZESPT.C); _spiked is a one-shot
+ * "player just touched a spike" flag written by testy() and read/written
+ * by other not-yet-decompiled modules (confirmed via get_xrefs_to).
+ * Storage defined in MAZESPT.C.
+ */
+extern int _spike;
+extern int _spiked;
+
+/*
  * Scroll offset (in room-grid rows) for the maze editor's room-grid
  * picker screen (choose_edit_maze(), MAZEEDIT.C) -- at most 2 rows of
  * rooms are shown at once, out of up to 4 (_VSIZE). Storage defined in
@@ -389,6 +410,15 @@ extern int _room_offset;
  * MAZEEDIT.C's block_menu/store_block/restore_block/undo_block/
  * copy_block.
  */
+/*
+ * Backing bitmap storage for the 1000 block sprites (_sprites[0x41]
+ * through _sprites[0x428], each 8x8 pixels = 64 bytes), allocated as one
+ * 64000-byte block by alloc_block_mem() (MAZESPT.C). Storage defined in
+ * MAZESPT.C, confirmed via get_xrefs_to to be used only by MAZESPT.C's
+ * alloc_block_mem/load_block_array/save_block_array.
+ */
+extern unsigned char far * _block_mem;
+
 extern int _maze_srow;
 extern int _maze_scol;
 extern int _maze_erow;
