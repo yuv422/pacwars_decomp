@@ -192,7 +192,7 @@ void main(int argc, char *argv[])
     char pacman_img[128] = "PACMAN.IMG";
     char pacman2_img[128] = "PACMAN2.IMG";
     char pacwars_img[128] = "PACWARS.IMG";
-    int si;
+    int i;
     int notitle = 0;
     int menu_choice = 0;
     int maze_hoff = 0;
@@ -200,8 +200,8 @@ void main(int argc, char *argv[])
     int saved_registered;
 
     /* uppercase every command-line argument up front */
-    for (si = 1; si < argc; si++) {
-        strupr(argv[si]);
+    for (i = 1; i < argc; i++) {
+        strupr(argv[i]);
     }
 
     decode_reg();
@@ -277,13 +277,13 @@ void main(int argc, char *argv[])
     }
 
     /* normal game launch: any remaining arguments are ON/OFF/NOTITLE flags */
-    for (si = 1; si < argc; si++) {
-        strupr(argv[si]);
-        if (strcmp(argv[si], "OFF") == 0) {
+    for (i = 1; i < argc; i++) {
+        strupr(argv[i]);
+        if (strcmp(argv[i], "OFF") == 0) {
             comms = 0;
-        } else if (strcmp(argv[si], "ON") == 0) {
+        } else if (strcmp(argv[i], "ON") == 0) {
             comms = 1;
-        } else if (strcmp(argv[si], "NOTITLE") == 0) {
+        } else if (strcmp(argv[i], "NOTITLE") == 0) {
             notitle = 1;
         }
     }
@@ -295,7 +295,7 @@ void main(int argc, char *argv[])
         get_filename(pacwars_img);
         load_pic_file(pacwars_img);
         /* wait for a keypress, checking every 15ms, for up to ~1.5s */
-        for (si = 0; si < 100; si++) {
+        for (i = 0; i < 100; i++) {
             delay(15);
             if (read_key() != 0) {
                 break;
