@@ -24,13 +24,113 @@
 #include "MAZESPT.H"
 #include <alloc.h>
 
-/* storage for _animate_maze_rooms/_animate_buffer, declared extern in
-   MAZEANIM.H -- this is the first (and so far only) module needing them.
-   _animate_buffer's real populating site wasn't identified in this pass
-   (see MAZEANIM.H's comment); it's presumably filled in by a not-yet-
-   decompiled loader elsewhere, so no initializer is given here. */
-ANIM_OBJECT far * _animate_maze_rooms[4][3];
-ANIM_SEQUENCE far * _animate_buffer[1];
+/*
+ * Like MAZEUTIL.C's _animate_maze, these pointers are NOT runtime-
+ * allocated -- each _animate_maze_rooms[voff][hoff] slot and every
+ * _animate_buffer[] entry points directly at statically-compiled data
+ * baked into the original .EXE's data segment (confirmed via
+ * read_memory: the ANIM_OBJECT records occupy 340e:0f51-10e7,
+ * immediately followed by the _animate_maze_rooms pointer array itself
+ * at 340e:10f5; the ANIM_SEQUENCE records occupy 340e:0b00-0b51,
+ * immediately followed by the _animate_buffer pointer array at
+ * 340e:0b51). Recovered byte-for-byte below.
+ *
+ * _animate_buffer was previously sized `[1]` (its real populating site
+ * hadn't been identified yet) -- that undersizing was a live bug once
+ * real data is involved: the ANIM_OBJECT records below use `animate`
+ * index values from 0 to 8, so alloc_room_animation()'s
+ * `_animate_buffer[obj[i].animate]` would read out of bounds for
+ * anything but index 0. Corrected to the real 9-entry table.
+ *
+ * NOT yet recovered: each ANIM_SEQUENCE's `frame` pointer (the actual
+ * per-frame maze-tile pattern data, at least two more struct levels
+ * deep -- ANIM_FRAME[frames], each with its own ANIM_ELEMENT
+ * far*-sized element_array). One sequence alone has 102 frames, so
+ * fully recovering this would be a substantially larger follow-up pass;
+ * left NULL and documented here rather than guessed at. Every other
+ * field (the room/object placement data actually asked about, plus
+ * each sequence's frame count/rate/dimensions) is real.
+ */
+static ANIM_OBJECT anim_obj_empty[] = {
+    { -1, 0, 0, 0, 0, 0, 0, 0, 0 }
+};
+
+static ANIM_OBJECT anim_obj_room_0_0[] = {
+    { 0, 0, 16, 19, 0, 0, 1, 0, 0 },
+    { 0, 0, 20, 23, 0, 0, 1, 0, 0 },
+    { 0, 0, 16, 26, 4, 0, 1, 0, 0 },
+    { 0, 0, 17, 22, 4, 1, 1, 0, 0 },
+    { 0, 0, 11, 29, 4, 1, 1, 0, 0 },
+    { 0, 0, 17, 29, 0, 1, 1, 0, 0 },
+    { -1, 0, 0, 0, 0, 0, 0, 0, 0 }
+};
+
+static ANIM_OBJECT anim_obj_room_0_1[] = {
+    { 1, 0, 11, 0, 4, 1, 1, 0, 0 },
+    { 1, 0, 17, 0, 0, 1, 1, 0, 0 },
+    { -1, 0, 0, 0, 0, 0, 0, 0, 0 }
+};
+
+static ANIM_OBJECT anim_obj_room_0_2[] = {
+    { 3, 1, 8, 23, 0, 3, 0, 0, 0 },
+    { 3, 1, 18, 15, 0, 4, 0, 0, 0 },
+    { 3, 1, 18, 16, 0, 5, 0, 0, 0 },
+    { -1, 0, 0, 0, 0, 0, 0, 0, 0 }
+};
+
+static ANIM_OBJECT anim_obj_room_1_1[] = {
+    { 3, 1, 11, 13, 0, 4, 0, 0, 0 },
+    { 3, 1, 11, 14, 0, 5, 0, 0, 0 },
+    { -1, 0, 0, 0, 0, 0, 0, 0, 0 }
+};
+
+static ANIM_OBJECT anim_obj_room_1_2[] = {
+    { 3, 2, 11, 4, 6, 2, 1, 0, 0 },
+    { 3, 2, 18, 8, 3, 2, 1, 0, 0 },
+    { 3, 2, 16, 14, 0, 2, 1, 0, 0 },
+    { -1, 0, 0, 0, 0, 0, 0, 0, 0 }
+};
+
+static ANIM_OBJECT anim_obj_room_2_0[] = {
+    { 3, 1, 13, 1, 0, 6, 1, 0, 0 },
+    { 3, 1, 4, 10, 1, 6, 1, 0, 0 },
+    { 3, 1, 4, 20, 0, 6, 1, 0, 0 },
+    { 3, 1, 17, 28, 1, 6, 1, 0, 0 },
+    { -1, 0, 0, 0, 0, 0, 0, 0, 0 }
+};
+
+static ANIM_OBJECT anim_obj_room_2_1[] = {
+    { 3, 1, 2, 6, 0, 7, 1, 0, 0 },
+    { 3, 1, 21, 19, 0, 8, 1, 0, 0 },
+    { -1, 0, 0, 0, 0, 0, 0, 0, 0 }
+};
+
+/* storage for the _animate_maze_rooms global declared extern in
+   MAZEANIM.H, indexed [voff][hoff] -- see the comment above. */
+ANIM_OBJECT far * _animate_maze_rooms[4][3] = {
+    { anim_obj_room_0_0, anim_obj_room_0_1, anim_obj_room_0_2 },
+    { anim_obj_empty,    anim_obj_room_1_1, anim_obj_room_1_2 },
+    { anim_obj_room_2_0, anim_obj_room_2_1, anim_obj_empty    },
+    { anim_obj_empty,    anim_obj_empty,    anim_obj_empty    }
+};
+
+static ANIM_SEQUENCE anim_seq_0 = { 8, 32, 3, 1, 0 };
+static ANIM_SEQUENCE anim_seq_1 = { 8, 32, 1, 3, 0 };
+static ANIM_SEQUENCE anim_seq_2 = { 8, 32, 1, 4, 0 };
+static ANIM_SEQUENCE anim_seq_3 = { 2, 32, 1, 1, 0 };
+static ANIM_SEQUENCE anim_seq_4 = { 2, 32, 1, 1, 0 };
+static ANIM_SEQUENCE anim_seq_5 = { 2, 32, 1, 1, 0 };
+static ANIM_SEQUENCE anim_seq_6 = { 4, 16, 1, 1, 0 };
+static ANIM_SEQUENCE anim_seq_7 = { 102, 2, 1, 1, 0 };
+static ANIM_SEQUENCE anim_seq_8 = { 16, 64, 1, 1, 0 };
+
+/* storage for the _animate_buffer global declared extern in
+   MAZEANIM.H -- see the comment above for the frame-data caveat. */
+ANIM_SEQUENCE far * _animate_buffer[9] = {
+    &anim_seq_0, &anim_seq_1, &anim_seq_2,
+    &anim_seq_3, &anim_seq_4, &anim_seq_5,
+    &anim_seq_6, &anim_seq_7, &anim_seq_8
+};
 
 /*
  * Allocates every room's per-object animation scratch buffer

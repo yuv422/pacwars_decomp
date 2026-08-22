@@ -54,14 +54,17 @@ extern ANIM_OBJECT far * _animate_maze_rooms[4][3];
 /*
  * Table of far pointers to the ANIM_SEQUENCE records selectable via an
  * ANIM_OBJECT's `animate` field (index * 4 bytes per entry). Real address
- * 340e:0b51 (Ghidra symbol `_animate_buffer`); get_xrefs_to on this
- * address returned nothing (the indexed access pattern isn't tracked as
- * a normal xref), and the table's populating/loading function wasn't
- * identified in this pass, so its true entry count is unconfirmed --
- * declared as an incomplete array type (valid for an extern declaration;
- * indexing still compiles correctly regardless of the unspecified bound).
+ * 340e:0b51 (Ghidra symbol `_animate_buffer`), immediately preceded in
+ * the original binary's data segment by the 9 ANIM_SEQUENCE records
+ * themselves (340e:0b00-0b51) -- confirmed via read_memory, and matching
+ * the highest `animate` index (8) used by any real _animate_maze_rooms
+ * entry in MAZEANIM.C. Was previously declared as an incomplete array
+ * type since the real entry count wasn't known; now sized `[9]` to match
+ * the recovered data (see MAZEANIM.C's storage definition and its
+ * comment on what's still missing -- each sequence's own per-frame
+ * pattern data).
  */
-extern ANIM_SEQUENCE far * _animate_buffer[];
+extern ANIM_SEQUENCE far * _animate_buffer[9];
 
 void alloc_map_animation(void);
 void alloc_room_animation(ANIM_OBJECT far * obj);
