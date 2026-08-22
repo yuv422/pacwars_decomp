@@ -75,12 +75,15 @@ static int _our_id;
 
 /*
  * This station's own 10-byte IPX address (network[4]+node[6], no socket).
- * Expected to be populated as a side effect of init_net() (IPXC.C, not
- * yet decompiled) succeeding; used here as the payload every join-type
- * packet sends to identify its origin at the application level (IPX's own
- * packet header source address isn't used for this by this protocol).
+ * Populated by init_net() (IPXC.C) via get_intwork_address() (IPX.ASM);
+ * used here as the payload every join-type packet sends to identify its
+ * origin at the application level (IPX's own packet header source address
+ * isn't used for this by this protocol). Un-done from an earlier static
+ * declaration once IPXC.C's init_net()/init_ipx_ecb_send() turned out to
+ * genuinely need it too (confirmed cross-module); now declared extern in
+ * PACWARS.H alongside _socket_no.
  */
-static char _source_address[10];
+char _source_address[10];
 
 /*
  * The 5-slot connected-station table. See the file banner comment above

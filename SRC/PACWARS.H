@@ -411,6 +411,15 @@ extern int _room_offset;
 extern unsigned int _socket_no;
 
 /*
+ * This station's own 10-byte IPX address (network[4]+node[6], no socket
+ * number). Same cross-module story as _socket_no above: get_xrefs_to on
+ * 340e:fc34 shows join()/join_new_user()/disconnect() (IPXCOMM.C) AND
+ * init_net()/init_ipx_ecb_send() (IPXC.C) all touching it. Storage
+ * defined in IPXCOMM.C.
+ */
+extern char _source_address[10];
+
+/*
  * Block-copy/move clipboard state for the maze editor's block_menu()
  * (MAZEEDIT.C): _maze_srow/_maze_scol/_maze_erow/_maze_ecol are the
  * normalized (top-left/bottom-right) bounds of the last block range

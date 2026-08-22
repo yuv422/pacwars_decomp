@@ -25,20 +25,29 @@ int init_net(void);
 char far * broadcast_address(char far * address);
 
 /*
- * Gap fill (same class of bug documented elsewhere in this project): these
- * two functions -- open_socket @ 2db9:0042 and close_socket @ 2db9:0064 --
- * are real, distinct routines in PACWARS.EXE (raw asm IPX socket-open/
- * -close wrappers, in a different code segment from the rest of IPXC.C's
- * functions, param_count 0 per Ghidra since they use registers directly
- * rather than a C calling convention) called by IPXCOMM.C's join()/
- * disconnect(), but no stub for either exists anywhere in this project.
- * Real signature per the raw disassembly at the call sites in join():
- * open_socket pushes (&out_value, socket_no) and reads the result from AX;
- * close_socket pushes just (socket_no). Declared here as stubs, pending a
- * future decompilation pass of IPXC.C's raw-asm routines, so IPXCOMM.C can
- * compile against them.
+ * Low-level helper used internally by init_ipx_ecb_send()/close_socket
+ * (network-byte-order 16-bit store) and init_ipx_ecb_send()/fill_address
+ * (builds an IPX_ADDRESS). Not part of PACWARS.EXE's exported symbol
+ * table (both are file-local to IPXC.C in the original), but declared
+ * here rather than kept static since they're used across this header's
+ * declared functions too.
  */
+void low_high(unsigned int far * intptr, unsigned int data);
+void fill_address(IPX_ADDRESS far * address, char far * node, int socket_number);
+
+/*
+ * Raw NetWare IPX driver primitives, implemented in IPX.ASM (real
+ * addresses 2db9:002d/0042/0064/0079/0093/00a8 -- a different code
+ * segment from the rest of this module, using registers directly rather
+ * than being compiled from C). See IPX.ASM's file banner comment for the
+ * IPX function-number-per-routine mapping.
+ */
+int init_ipx_asm(void);
+void get_intwork_address(char far * out_address);
 int open_socket(int socket_no, unsigned int far * out_value);
 void close_socket(int socket_no);
+int get_local_address(IPX_ADDRESS far * address, char far * immediate_out);
+void send_packet_asm(ECB far * ecb);
+void listen_packet_asm(ECB far * ecb);
 
 #endif /* IPXC_H */
