@@ -63,7 +63,10 @@
  * IPX socket number, shared with IPXC.C (see the extern declaration and
  * comment in PACWARS.H).
  */
-unsigned int _socket_no;
+/* Confirmed via read_memory at 340e:28de: a genuine static initializer
+ * (0x8001), not BSS zero -- the fixed application IPX socket number this
+ * game listens/sends on (in the dynamic-socket range, >= 0x8000). */
+unsigned int _socket_no = 0x8001;
 
 /*
  * This station's assigned slot index (0-4) once join() succeeds.

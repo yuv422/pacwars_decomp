@@ -60,7 +60,11 @@ void test_shots(MAZE_LOG_STRUCT far * maze_log, int dir);
 void test_pos(MAZE_LOG_STRUCT far * maze_log);
 
 /* storage for the shared globals declared extern in PACWARS.H */
-int comms;
+/* Confirmed via read_memory at 340e:2742 in PACWARS.EXE: this is a real
+ * static initializer baked into the data segment (0001), not just a
+ * runtime default -- the original source starts up assuming a network
+ * (IPX comms) game until/unless overridden. */
+int comms = 1;
 int pacman;
 char curr_name[13];
 unsigned int curr_score;
@@ -82,7 +86,9 @@ int _voffset;
  * xrefs to 340e:036b resolve to functions in this module: init_bullet,
  * test_shots, and others still pending in this file) via get_xrefs_to.
  */
-int _selected;
+/* -1 is the "no lock" sentinel; confirmed as a real static initializer
+ * (0xffff) at 340e:036b, not just BSS zero. */
+int _selected = -1;
 
 int _cur_left;
 int _cur_right;
@@ -139,7 +145,9 @@ int _sbomb;
  * effect's. All confirmed file-local to MAZE.C via get_xrefs_to (every
  * reference resolves to test_pos/test_action, both in this file).
  */
-int _token_time;
+/* Confirmed via read_memory at 340e:0351: a genuine static initializer
+ * (0x000a = 10), not BSS zero. */
+int _token_time = 10;
 int _drunk;
 long _drunk_time;
 int _glue;

@@ -61,11 +61,17 @@ unsigned char far * _block_mem;
  */
 static unsigned char _sp_head[2];
 
-/* storage for the shared comms/UI-flag/spike globals declared extern in
-   PACWARS.H (see the comment there for xref evidence) */
-int _comms;
+/* storage for the shared _esc/spike globals declared extern in PACWARS.H
+ * (see the comment there for xref evidence). This used to also define its
+ * own "_comms" here, disconnected from the real "comms" that
+ * MAZE.C/MAZEUTIL.C actually set (see PACWARS.H's note on this) -- that
+ * duplicate has been removed, but "_esc" is a genuine separate variable
+ * from "esc" (see PACWARS.H) and keeps its storage here.
+ *
+ * _spike's default of 11 is a real static initializer confirmed via
+ * read_memory at 340e:0345 (0x000b), not BSS zero. */
 int _esc;
-int _spike;
+int _spike = 11;
 int _spiked;
 
 /*
@@ -1164,7 +1170,7 @@ void init_gold(MAZE_LOG_STRUCT far * maze_log)
     }
 
     if (maze_log->gold.time <= maze_log->time) {
-        if (maze_log->gold.present == 0 && (_comms == 0 || num_connected > 1)) {
+        if (maze_log->gold.present == 0 && (comms == 0 || num_connected > 1)) {
             init_position(&th, &tv, &tx, &ty);
             maze_log->gold.hoffset = th & 0xf;
             maze_log->gold.voffset = tv & 0xf;
@@ -1212,7 +1218,7 @@ void init_token(MAZE_LOG_STRUCT far * maze_log)
     }
 
     if (maze_log->token.time <= maze_log->time) {
-        if (maze_log->token.present == 0 && (_comms == 0 || num_connected > 1)) {
+        if (maze_log->token.present == 0 && (comms == 0 || num_connected > 1)) {
             init_position(&th, &tv, &tx, &ty);
             maze_log->token.count = 0;
             maze_log->token.hoffset = th & 0xf;

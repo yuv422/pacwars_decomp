@@ -13,13 +13,18 @@
  * the compiler), sent/received starting from its first real field
  * (&maze_log->type) since MAZE_LOG_STRUCT has no separate header to skip.
  *
- * _comms (340e:2742) gates every function here: 0 means single-player
+ * comms (340e:2742) gates every function here: 0 means single-player
  * (no IPX session), matching this project's existing PACWARS.H
  * declaration. Ghidra's decompiler rendered this as a raw `*(int*)0x2742`
  * in open_ipx()'s decompile text (rather than resolving the `_comms`
  * symbol like it did for the other three functions here) -- confirmed
  * via disassembly that it's the exact same address, so no different
- * meaning.
+ * meaning. (This file originally spelled the C identifier "_comms",
+ * matching Ghidra's own display name for 340e:2742; that turned out to
+ * collide with a separate, disconnected "_comms" MAZESPT.C had declared
+ * for the same address -- both have been consolidated onto "comms", the
+ * name MAZE.C/PACWARS.H actually use for this address; see PACWARS.H's
+ * note for the full story.)
  */
 #include "MAZECOMM.H"
 #include "IPXCOMM.H"
@@ -38,7 +43,7 @@ int open_ipx(MAZE_LOG_STRUCT far * maze_log)
 {
     int num_connections;
 
-    if (_comms == 0) {
+    if (comms == 0) {
         init_man(1, maze_log);
     } else {
         _wstation = join(&num_connections);
@@ -55,7 +60,7 @@ int open_ipx(MAZE_LOG_STRUCT far * maze_log)
 
 int send_ipx(MAZE_LOG_STRUCT far * maze_log)
 {
-    if (_comms == 0) {
+    if (comms == 0) {
         return 1;
     }
     return send_next((char far *) &maze_log->type, 0x76);
@@ -63,14 +68,14 @@ int send_ipx(MAZE_LOG_STRUCT far * maze_log)
 
 int recieve_ipx(MAZE_LOG_STRUCT far * maze_log)
 {
-    if (_comms == 0) {
+    if (comms == 0) {
         return 1;
     }
     return recieve((char far *) &maze_log->type, 0x76);
 }
 
 /*
- * NOTE (27f9:0074-009f): when _comms != 0, this branch calls disconnect()
+ * NOTE (27f9:0074-009f): when comms != 0, this branch calls disconnect()
  * (a void function) and returns without ever assigning its own result --
  * the real compiled function returns whatever disconnect() happened to
  * leave in AX. This is a genuine quirk of the original binary (confirmed
@@ -82,7 +87,7 @@ int disconnect_ipx(MAZE_LOG_STRUCT far * maze_log)
 {
     int result;
 
-    if (_comms == 0) {
+    if (comms == 0) {
         result = 1;
     } else {
         disconnect((char far *) &maze_log->type, 0x76);

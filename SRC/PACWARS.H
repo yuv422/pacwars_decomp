@@ -379,13 +379,22 @@ extern int _HSIZE;
 extern int _wstation;
 
 /*
- * Global comms/UI flags used across many modules (network multiplayer
- * flag and an ESC-was-pressed abort flag, respectively). Confirmed via
- * get_xrefs_to to be read/written from many modules already decompiled
- * (MAIN/MAZEEDIT/MANEDIT/etc). Storage defined in MAZESPT.C for now, as
- * the first module in this decompilation pass to need it.
+ * NOTE: an earlier decompilation pass declared a second global here named
+ * "_comms" (storage in MAZESPT.C), apparently not realizing this file
+ * already declares the real one above ("comms", storage in MAZE.C, both
+ * resolving to the same address, 340e:2742). Nothing in this project
+ * distinguished a separate meaning for "_comms" -- MAZESPT.C's copy was
+ * simply always zero regardless of the real game state -- so that
+ * duplicate declaration and its uses in MAZESPT.C have been removed in
+ * favour of "comms" above.
+ *
+ * "_esc" (below) is NOT the same situation: MAZE.C itself uses both
+ * "esc" (the local "return to menu" UI flag, set/read throughout its
+ * menu-handling code) and "_esc" (a distinct network-level "session
+ * ending" flag checked in main_loop()'s per-frame network game loop,
+ * confirmed at 340e:7114) -- these are two real, separate variables in
+ * the original binary, not a duplicate.
  */
-extern int _comms;
 extern int _esc;
 
 /*

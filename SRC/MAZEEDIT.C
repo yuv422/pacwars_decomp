@@ -35,8 +35,11 @@ MAZE_STRUCT far * _undo_abuff;
    extern in PACWARS.H; allocated by alloc_maze_def_mem() below. */
 void far * _maze[4][3];
 void far * _maze_attrib[4][3];
-int _VSIZE;
-int _HSIZE;
+/* Default room-grid dimensions (2 rows x 3 cols) confirmed via read_memory
+ * at 340e:1592/1594 in PACWARS.EXE -- baked into the data segment as a
+ * genuine static initializer, not just a later runtime assignment. */
+int _VSIZE = 2;
+int _HSIZE = 3;
 
 /* storage for the _room_offset global declared extern in PACWARS.H */
 int _room_offset;

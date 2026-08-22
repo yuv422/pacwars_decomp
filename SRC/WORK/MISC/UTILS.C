@@ -63,9 +63,12 @@ static char key_ready;
 int __disp_page;
 
 /* storage for the __mvarows/__mvacols globals declared extern in
-   PACWARS.H; given their initial values by load_mvaenv()/size_screen(). */
-int __mvarows;
-int __mvacols;
+   PACWARS.H; reassigned at runtime by load_mvaenv()/size_screen(), but
+   confirmed via read_memory at 340e:2951/2953 that the compiled default
+   (before either of those run) is a real static initializer of 25x80 --
+   the standard text-mode screen size -- not BSS zero. */
+int __mvarows = 25;
+int __mvacols = 80;
 
 /* storage for the _char_attrib global declared extern in PACWARS.H */
 unsigned char _char_attrib;
@@ -93,9 +96,12 @@ static VAR_STRUCT far * _mvavar_ptr;
  * hooks below. Confirmed file-local: every reference found is within this
  * file's own kb_event/set_*_indic functions.
  */
-static int __queue_indic;
-static int __config_indic;
-static int __mail_indic;
+/* Confirmed via read_memory at 340e:2906/2908/290a: all three are real
+ * static initializers of 1 (the business-app hooks default to enabled),
+ * not BSS zero. */
+static int __queue_indic = 1;
+static int __config_indic = 1;
+static int __mail_indic = 1;
 
 /* set_qdisp()'s display-position state; only ever written here, no reader
    found elsewhere in the modules decompiled so far. */
@@ -178,7 +184,9 @@ static long _f2_bar_buf_size;          /* DAT_340e_29b7 */
  * presumably the maze editor's string-editing subsystem); declared
  * file-local here since kb_event() is the only reader.
  */
-static int _f2_edit_insert;
+/* Confirmed via read_memory at 340e:291c: a real static initializer of 1
+ * (insert mode is the default), not BSS zero. */
+static int _f2_edit_insert = 1;
 static int _f2_edit;
 static int _sys_f2_edit;
 
