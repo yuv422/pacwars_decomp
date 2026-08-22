@@ -32,6 +32,13 @@ NETWARE_INT_7A_FUNC DD 0h
 
 .code
 
+public _init_ipx_asm
+public _get_intwork_address
+public _get_local_address
+public _listen_packet_asm
+public _send_packet_asm
+public _close_socket
+public _open_socket
 
 _init_ipx_asm   PROC    FAR
 
