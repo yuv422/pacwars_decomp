@@ -866,14 +866,20 @@ static void draw_grid(int xm, int ym, int w, int h)
     }
 }
 
-/* status: 1 to highlight (colour 0xe), 0 to un-highlight (colour 8). */
+/* status: 1 to highlight (colour 0xe), 0 to un-highlight (colour 8). Draws
+ * an OUTLINE, not a filled box -- confirmed via the raw disassembly at
+ * 1ae7:18f7, whose call target 0x1000:cfef resolves to trbox(), not
+ * trfbox(). An earlier pass here wrongly used trfbox(), which painted a
+ * solid block over the cell (both a solid highlight instead of an outline,
+ * and a solid grey box left behind on un-highlight that clobbered the
+ * actual sprite pixel colour underneath it). */
 static void pixel_hlite(int status, int index, int xmargin, int ymargin, int h)
 {
     int x, y;
 
     x = xmargin + (index / h) * _bitw;
     y = ymargin + (index % h) * _bith;
-    trfbox(x, y, _bitw + 1, _bith + 1, status == 1 ? 0xe : 8);
+    trbox(x, y, _bitw + 1, _bith + 1, status == 1 ? 0xe : 8);
 }
 
 static void set_pixel_hlite(int index, int xmargin, int ymargin, int h, int colour)
