@@ -339,7 +339,7 @@ int edit_pacman(int curr_pacman)
                 set_mode(0x13);
                 idx = get_sprite_data(curr_pacman, edit_pos, edit_horiz[edit_pos] - 1);
                 copy_sprite_to_gen(&_sprites[idx]);
-                sprite_file_ptr = file_name;
+                sprite_file_ptr = _pacname;
                 sprite_gen(1, &sprite_file_ptr);
                 copy_gen_to_sprite(&_sprites[idx]);
                 idx2 = get_mirror_sprite_data(curr_pacman, edit_pos, edit_horiz[edit_pos] - 1);
