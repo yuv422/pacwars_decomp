@@ -274,8 +274,16 @@ static int edit_sprite(int xmargin, int ymargin, int far *sprite_index, int num_
         } else if (key == 'A') {
             pixel_hlite(0, _sprite_cursor, xmargin, ymargin, _sprite_h);
             return key;
-        } else if (inkey >= 'H' && inkey <= 'V') {
-            switch (inkey) {
+        } else if (key >= 'H' && key <= 'V') {
+            /* Confirmed via 1ae7:0367 that the original binary overwrites
+             * its inkey local with toupper(inkey) immediately after
+             * kb_event() and uses that SAME (uppercased) value for every
+             * comparison from that point on, including this range check
+             * and the switch below -- so lowercase letters (e.g. 'p') are
+             * meant to work here too. An earlier pass compared against raw
+             * inkey instead of key, so lowercase presses fell through and
+             * did nothing. */
+            switch (key) {
             case 'H':
                 hflip(_sprite_w, _sprite_h, xmargin, ymargin);
                 break;
