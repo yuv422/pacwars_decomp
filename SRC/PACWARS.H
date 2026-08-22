@@ -400,6 +400,17 @@ extern int _spiked;
 extern int _room_offset;
 
 /*
+ * IPX socket number this station is using, allocated/incremented by
+ * join() (IPXCOMM.C) on each connection retry. Confirmed cross-module via
+ * get_xrefs_to on 340e:28de: referenced from join()/disconnect()
+ * (IPXCOMM.C, segment 2d4c) AND from init_ipx_ecb_send()/
+ * init_ipx_ecb_receive() (IPXC.C, segment 2d1a), so unlike most of this
+ * module's other new globals this one can't be file-local. Storage
+ * defined in IPXCOMM.C.
+ */
+extern unsigned int _socket_no;
+
+/*
  * Block-copy/move clipboard state for the maze editor's block_menu()
  * (MAZEEDIT.C): _maze_srow/_maze_scol/_maze_erow/_maze_ecol are the
  * normalized (top-left/bottom-right) bounds of the last block range
