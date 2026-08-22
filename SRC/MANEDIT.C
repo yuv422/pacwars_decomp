@@ -983,7 +983,8 @@ int load_all_files(void)
         found = findnext(&ff);
         width++;
     }
-    qsort(_pac_files, width, sizeof(_pac_files[0]), sort_func);
+    qsort(_pac_files, width, sizeof(_pac_files[0]),
+          (int (*)(const void far *, const void far *)) sort_func);
     return width;
 }
 
