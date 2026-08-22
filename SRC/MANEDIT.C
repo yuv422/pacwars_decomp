@@ -215,18 +215,18 @@ int choose_edit_pacman(int curr_pacman)
  * editor (sprite_gen()) on the selected frame and its mirrored twin;
  * Enter on field 6 runs List/Load/Save depending on edit_horiz[6].
  *
- * The `sprite_gen(1, &sprite_file_ptr)` call below is a best-effort
- * read of the raw disassembly: the decompiler rendered its second
- * argument as `CONCAT22(unaff_DI,unaff_SS)` (unresolved register
- * noise), but the actual instructions at this call site
- * (1d69:0648-0654) just push `SS:&local` and the literal 1 -- i.e. the
- * address of an uninitialized local, matching sprite_gen's declared
- * `(int num_sprites, char far * far * sprite_files)` signature exactly
- * in argument size (3 words). Since this call edits a sprite that's
- * already resident in the "gen" buffer (just copied there via
- * copy_sprite_to_gen()) rather than loading a fresh file from disk, an
- * unused single-element far-pointer slot for the num_sprites==1 case is
- * the most sensible reading.
+ * The `sprite_gen(1, &sprite_file_ptr)` call below passes the address of
+ * a single-element far-pointer "array" (num_sprites==1), matching
+ * sprite_gen's declared `(int num_sprites, char far * far * sprite_files)`
+ * signature. An earlier pass (written before SPRITGEN.C itself was
+ * decompiled) guessed this slot was left deliberately unused/dangling,
+ * reasoning that this call edits a sprite already resident in the "gen"
+ * buffer rather than loading one from disk. That guess was wrong: now
+ * that sprite_gen() is decompiled, it's confirmed to unconditionally
+ * call draw_file_name(sprite_files[0]) on entry (and to reload from that
+ * same path on its 'C' key), so sprite_file_ptr must point at this
+ * pacman's current file_name buffer, which is set immediately before
+ * each call.
  */
 int edit_pacman(int curr_pacman)
 {
@@ -339,6 +339,7 @@ int edit_pacman(int curr_pacman)
                 set_mode(0x13);
                 idx = get_sprite_data(curr_pacman, edit_pos, edit_horiz[edit_pos] - 1);
                 copy_sprite_to_gen(&_sprites[idx]);
+                sprite_file_ptr = file_name;
                 sprite_gen(1, &sprite_file_ptr);
                 copy_gen_to_sprite(&_sprites[idx]);
                 idx2 = get_mirror_sprite_data(curr_pacman, edit_pos, edit_horiz[edit_pos] - 1);

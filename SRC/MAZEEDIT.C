@@ -1683,30 +1683,30 @@ void draw_blocks(int offset)
 }
 
 /*
- * Opens the sprite editor (SPRITGEN.C, not yet decompiled) on a single
- * block sprite. Real signature matches the PACWARS.TXT-derived stub in
- * shape (1 int param), just renamed to match its real meaning (a sprite
- * index, not an "offset").
+ * Opens the sprite editor on a single block sprite. Real signature
+ * matches the PACWARS.TXT-derived stub in shape (1 int param), just
+ * renamed to match its real meaning (a sprite index, not an "offset").
  *
- * NOTE: sprite_gen()'s second parameter is declared in SPRITGEN.H as an
- * array of far string pointers (char far * far *), but the real call
- * here passes the address of a single local char buffer holding one
- * name string directly -- SPRITGEN.H's stub signature (guessed, like
- * many in this project, from an incomplete type-def list) looks
- * suspect, but fixing it is out of scope here since sprite_gen() itself
- * hasn't been decompiled yet; cast through to match its current
- * declaration.
+ * sprite_gen()'s second parameter really is char far * far * -- a
+ * single-element array of far string pointers for the num_sprites==1
+ * case (confirmed now that SPRITGEN.C itself is decompiled: it
+ * unconditionally dereferences it twice, once for the array slot and
+ * once for the string). An earlier pass here cast `name` (a plain char
+ * array) straight to that type, which is wrong -- it needs the address
+ * of a char far * variable that itself points at `name`, not the
+ * address of `name`.
  */
 void edit_block(int sprite)
 {
     static char name[6] = "BLOCK";
+    char far *name_ptr = name;
     int font;
 
     font = SetTextFont(-1);
     SetTextFont(4);
     set_mode(0x13);
     copy_sprite_to_gen(_sprites + sprite);
-    sprite_gen(1, (char far * far *) name);
+    sprite_gen(1, &name_ptr);
     copy_gen_to_sprite(_sprites + sprite);
     SetTextFont(font);
     set_mode(0x13);
@@ -1722,6 +1722,7 @@ void edit_block(int sprite)
 void edit_block_range(int sprite, int w, int h)
 {
     static char name[12] = "BLOCK RANGE";
+    char far *name_ptr = name;
     int font;
     int row, col;
 
@@ -1734,7 +1735,7 @@ void edit_block_range(int sprite, int w, int h)
             copy_sprite_range_to_gen(row, col, _sprites + sprite + row + col * 0x14);
         }
     }
-    sprite_gen(1, (char far * far *) name);
+    sprite_gen(1, &name_ptr);
     for (row = 0; row < h; row++) {
         for (col = 0; col < w; col++) {
             copy_gen_to_sprite_range(row, col, _sprites + sprite + row + col * 0x14);

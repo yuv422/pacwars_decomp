@@ -129,7 +129,10 @@ void sprite_gen(int num_sprites, char far * far *sprite_files)
     int xm, ym, index;
     int mode;
 
-    ym = 200 - (__disp_page + 1);      /* 0x1134: current display page */
+    /* [0x1134] is _grid_h (a fixed constant, 190), not __disp_page --
+     * an earlier pass here substituted the wrong global. ym is always
+     * 200 - (190+1) = 9, a small fixed top margin. */
+    ym = 200 - (_grid_h + 1);
     index = 0;
     xm = 0;
     mode = 'E';
@@ -232,9 +235,10 @@ static int edit_sprite(int xmargin, int ymargin, int far *sprite_index, int num_
         _sprite_cursor = 0;
         control_text((char far *) "Edit");
         grid_size();
-        grid_pos(_sprite_cursor / _sprite_h, _sprite_cursor % _sprite_h);
+        draw_palette_colour((int) _colour_index);
     }
     pixel_hlite(1, _sprite_cursor, xmargin, ymargin, _sprite_h);
+    grid_pos(_sprite_cursor / _sprite_h + 1, _sprite_cursor % _sprite_h + 1);
 
     for (;;) {
         row = _sprite_cursor % _sprite_h;
@@ -257,7 +261,7 @@ static int edit_sprite(int xmargin, int ymargin, int far *sprite_index, int num_
             return key;
         } else if (inkey == 0xd || inkey == ' ') {
             /* stamp the current palette colour at the cursor */
-            _sprite_buffer[col * 80 + row] = (unsigned char) _colour_index;
+            _sprite_buffer[row * 80 + col] = (unsigned char) _colour_index;
             draw_sprite(_sprite_w, _sprite_h, xmargin, ymargin, 0);
             set_pixel_hlite(_sprite_cursor, xmargin, ymargin, _sprite_h, (int) _colour_index);
             continue;
@@ -283,7 +287,7 @@ static int edit_sprite(int xmargin, int ymargin, int far *sprite_index, int num_
                 return inkey;
             case 'P':
                 /* pick colour under cursor, then exit into the palette */
-                _colour_index = _sprite_buffer[col * 80 + row];
+                _colour_index = _sprite_buffer[row * 80 + col];
                 pixel_hlite(0, _sprite_cursor, xmargin, ymargin, _sprite_h);
                 return inkey;
             case 'U':
@@ -390,12 +394,19 @@ static int edit_mask(int xmargin, int ymargin)
     int key;
     int row, col;
 
+    /* The disassembly reads _colour_index into a local here and then
+     * unconditionally forces it to 0xf (white) for the duration of mask
+     * editing, showing that fixed colour in the preview swatch; nothing
+     * in this function restores the original value afterwards, so this
+     * override is left in place on return, matching the original. */
     swap_sprite_mask();
     draw_sprite(_sprite_w, _sprite_h, xmargin, ymargin, 1);
     control_text((char far *) "Mask");
     grid_size();
-    grid_pos(_mask_cursor / _sprite_h, _mask_cursor % _sprite_h);
+    _colour_index = 0xf;
+    draw_palette_colour((int) _colour_index);
     pixel_hlite(1, _mask_cursor, xmargin, ymargin, _sprite_h);
+    grid_pos(_mask_cursor / _sprite_h + 1, _mask_cursor % _sprite_h + 1);
 
     for (;;) {
         row = _mask_cursor % _sprite_h;
@@ -408,10 +419,10 @@ static int edit_mask(int xmargin, int ymargin)
             restore_mask();
             return key;
         } else if (inkey == 0xd || inkey == ' ') {
-            _mask_buffer[col * 80 + row] ^= 1;
+            _mask_buffer[row * 80 + col] ^= 1;
             draw_sprite(_sprite_w, _sprite_h, xmargin, ymargin, 0);
             set_pixel_hlite(_mask_cursor, xmargin, ymargin, _sprite_h,
-                             _mask_buffer[col * 80 + row] != 0 ? 0xf : 8);
+                             _mask_buffer[row * 80 + col] != 0 ? 0xf : 8);
         } else if (key == 'E') {
             restore_mask();
             return key;
@@ -420,8 +431,8 @@ static int edit_mask(int xmargin, int ymargin)
             row = 0;
             for (col = 0; col < _sprite_w; col++) {
                 for (row = 0; row < _sprite_h; row++) {
-                    _mask_buffer[col * 80 + row] =
-                        (_sprite_buffer[col * 80 + row] != 0) ? 1 : 0;
+                    _mask_buffer[row * 80 + col] =
+                        (_sprite_buffer[row * 80 + col] != 0) ? 1 : 0;
                 }
             }
             draw_sprite(_sprite_w, _sprite_h, xmargin, ymargin, 1);
@@ -785,20 +796,30 @@ static void clear_sprite(int w, int h)
 }
 
 /*
- * draw_sprite -- blits _sprite_buffer to the screen at (xmargin,ymargin),
- * scaled up by _bitw x _bith into on-screen cells (status==1: full
- * redraw with per-cell highlight boxes via set_pixel_hlite; other status
- * values: quick per-row memcpy without highlighting).
+ * draw_sprite -- does two separate things:
+ *  1. Blits _sprite_buffer 1:1 (unscaled) as a small raw preview, always
+ *     at the SAME fixed screen position (320 - (_max_w+6), 0) --
+ *     independent of xmargin/ymargin. status != 2 also clears/borders
+ *     that preview area first; status == 2 (used by animate_sprite)
+ *     skips the clear/border and just blits.
+ *  2. If status == 1, also redraws the big per-cell zoomed grid via
+ *     set_pixel_hlite(), which IS positioned by xmargin/ymargin.
+ * Confirmed against the raw disassembly at 1ae7:1702 -- xmargin/ymargin
+ * are never read for the preview blit itself, only for the zoomed grid.
  */
 static void draw_sprite(int w, int h, int xmargin, int ymargin, int status)
 {
     unsigned char far *base;
     int row, col;
+    int x_anchor, y_anchor;
 
-    base = (unsigned char far *) MK_FP(VGA_SEGMENT, (__disp_page << 15) + (ymargin + 2) * 320 + xmargin + 2);
+    x_anchor = 320 - (_max_w + 6);
+    y_anchor = 0;
+    base = (unsigned char far *) MK_FP(VGA_SEGMENT, (__disp_page << 15) + (y_anchor + 2) * 320 + x_anchor + 2);
 
     if (status != 2) {
-        trbox(xmargin + 5, ymargin + 5, _max_w + 5, 0xa, 0);
+        trfbox(x_anchor, y_anchor, w + 5, h + 5, 0);
+        trbox(x_anchor, y_anchor, w + 4, h + 4, 0xa);
     }
 
     for (row = 0; row < h; row++) {
@@ -809,7 +830,7 @@ static void draw_sprite(int w, int h, int xmargin, int ymargin, int status)
         for (col = 0; col < w; col++) {
             for (row = 0; row < h; row++) {
                 set_pixel_hlite(col * h + row, xmargin, ymargin, h,
-                                 _sprite_buffer[col * 80 + row]);
+                                 _sprite_buffer[row * 80 + col]);
             }
         }
     }
@@ -838,10 +859,10 @@ static void draw_grid(int xm, int ym, int w, int h)
     _bith = cell;
 
     for (i = 0; i <= w; i++) {
-        vline(xm + 8 + i * _bitw, ym + 1, h * _bith + 1, 0xb);
+        vline(xm + i * _bitw, ym, h * _bith + 1, 8);
     }
     for (i = 0; i <= h; i++) {
-        hline(xm + 8, ym + 1 + i * _bith, w * _bitw + 1, 0xb);
+        hline(xm, ym + i * _bith, w * _bitw + 1, 8);
     }
 }
 
@@ -864,9 +885,18 @@ static void set_pixel_hlite(int index, int xmargin, int ymargin, int h, int colo
     trfbox(x + 1, y + 1, _bitw - 1, _bith - 1, colour);
 }
 
+/* Draws the single "current colour" preview swatch at its fixed screen
+ * position (always the same spot -- this is not part of the 256-entry
+ * palette grid drawn by draw_palette(); it's the small indicator shown
+ * by edit_sprite/edit_mask/select_colour next to the grid). */
 static void draw_palette_colour(int colour)
 {
-    trfbox(320 - (_max_w + 6) - 5, 20, 15, 20, colour);
+    int x, y;
+
+    x = 0xe6;
+    y = _max_h + 6;
+    trbox(x, y, 20, 15, 0xa);
+    trfbox(x + 1, y + 1, 18, 13, colour);
 }
 
 static void control_text(char far *text_ptr)
@@ -896,12 +926,30 @@ static void draw_file_name(char far *text_ptr)
     text256(0, 0, (unsigned char far *) text_ptr, 0xe, 2);
 }
 
+/*
+ * draw_palette -- draws the full 256-colour selection grid as an 8-column
+ * by 32-row array of 5x3 pixel swatches (i / 32 = column, i % 32 = row),
+ * anchored at (262, _max_h + 8) with a 7x4-pixel cell pitch (5+2 wide,
+ * 3+1 tall) and a border box around the whole grid. Recovered from the
+ * raw disassembly at 1ae7:1aff -- this is NOT a loop over
+ * draw_palette_colour() (that function draws an unrelated, fixed-position
+ * single swatch; conflating the two was an earlier mistake in this file).
+ */
 static void draw_palette(void)
 {
     int i;
+    int col, row;
+    int x0, y0;
+
+    x0 = 320 - ((5 + 2) * 8) - 2;   /* 262 */
+    y0 = _max_h + 8;
+
+    trbox(x0 - 2, y0 - 2, (5 + 2) * 8 + 2, (3 + 1) * 32 + 3, 0xb);
 
     for (i = 0; i < 0x100; i++) {
-        draw_palette_colour(i);
+        col = i / 0x20;
+        row = i % 0x20;
+        trfbox(x0 + col * 7, y0 + row * 4, 5, 3, i);
     }
 }
 
@@ -916,8 +964,9 @@ static int select_colour(void)
     int index;
 
     control_text((char far *) "Pal ");
+    draw_palette_colour((int) _colour_index);
     index = _colour_index;
-    hlite(1, index, 5, 3, 1, 2, 3, 3);
+    hlite(1, index, 0x106, _max_h + 8, 5, 3, 2, 1);
 
     for (;;) {
         kb_event(&inkey, &ext);
@@ -925,39 +974,39 @@ static int select_colour(void)
 
         if (key == 'E' || inkey == 0x1b || inkey == 0xd || inkey == ' ') {
             _colour_index = index;
-            hlite(0, index, 5, 3, 1, 2, 3, 3);
+            hlite(0, index, 0x106, _max_h + 8, 5, 3, 2, 1);
             return 'E';
         } else if (inkey == 0) {
             switch (ext) {
-            case 0x4b: /* Left */
-                if (index % 0x20 > 0) {
-                    hlite(0, index, 5, 3, 1, 2, 3, 3);
-                    index--;
-                    hlite(1, index, 5, 3, 1, 2, 3, 3);
+            case 0x4b: /* Left: column-- (index -= 32) */
+                if (index / 0x20 > 0) {
+                    hlite(0, index, 0x106, _max_h + 8, 5, 3, 2, 1);
+                    index -= 0x20;
+                    hlite(1, index, 0x106, _max_h + 8, 5, 3, 2, 1);
                 }
                 break;
             case 0x3b: /* F1 */
                 help_commands();
                 break;
-            case 0x48: /* Up */
-                if (index / 0x20 > 0) {
-                    hlite(0, index, 5, 3, 1, 2, 3, 3);
-                    index -= 0x20;
-                    hlite(1, index, 5, 3, 1, 2, 3, 3);
+            case 0x48: /* Up: row-- (index -= 1) */
+                if (index % 0x20 > 0) {
+                    hlite(0, index, 0x106, _max_h + 8, 5, 3, 2, 1);
+                    index--;
+                    hlite(1, index, 0x106, _max_h + 8, 5, 3, 2, 1);
                 }
                 break;
-            case 0x4d: /* Right */
-                if (index % 0x20 < 0x1f) {
-                    hlite(0, index, 5, 3, 1, 2, 3, 3);
-                    index++;
-                    hlite(1, index, 5, 3, 1, 2, 3, 3);
-                }
-                break;
-            case 0x50: /* Down */
+            case 0x4d: /* Right: column++ (index += 32) */
                 if (index / 0x20 < 7) {
-                    hlite(0, index, 5, 3, 1, 2, 3, 3);
+                    hlite(0, index, 0x106, _max_h + 8, 5, 3, 2, 1);
                     index += 0x20;
-                    hlite(1, index, 5, 3, 1, 2, 3, 3);
+                    hlite(1, index, 0x106, _max_h + 8, 5, 3, 2, 1);
+                }
+                break;
+            case 0x50: /* Down: row++ (index += 1) */
+                if (index % 0x20 < 0x1f) {
+                    hlite(0, index, 0x106, _max_h + 8, 5, 3, 2, 1);
+                    index++;
+                    hlite(1, index, 0x106, _max_h + 8, 5, 3, 2, 1);
                 }
                 break;
             default:
@@ -1044,13 +1093,16 @@ static void help_commands(void)
 }
 
 /* status: 1 to highlight (colour 0xe), 0 to un-highlight (colour 8). */
+/* Draws an outline (not filled) around palette cell `index`, which is
+ * laid out column-major: index / 0x20 selects the column, index % 0x20
+ * the row within it -- matching draw_palette()'s own cell placement. */
 static void hlite(int status, int index, int xmargin, int ymargin, int w, int h, int xsep, int ysep)
 {
     int x, y;
 
-    x = xmargin + (index % 0x20) * (w + xsep);
-    y = ymargin + (index / 0x20) * (h + ysep);
-    trfbox(x - 1, y - 1, w + 2, h + 2, status == 1 ? 0xe : 0);
+    x = xmargin + (index / 0x20) * (w + xsep);
+    y = ymargin + (index % 0x20) * (h + ysep);
+    trbox(x - 1, y - 1, w + 2, h + 2, status == 1 ? 0xe : 0);
 }
 
 static void trbox(int x, int y, int w, int h, int colour)
