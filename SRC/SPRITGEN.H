@@ -25,4 +25,14 @@ void copy_gen_to_sprite(SPRITE_STRUCT far * sprite);
 void copy_sprite_range_to_gen(int row_offset, int col_offset, SPRITE_STRUCT far * sprite);
 void copy_gen_to_sprite_range(int row_offset, int col_offset, SPRITE_STRUCT far * sprite);
 
+/*
+ * Also missing from the original stub generation pass, same as the two
+ * above. Confirmed real via Ghidra (_copy_gen_to_mirror_sprite @
+ * 1ae7:25cb, this module's own segment) while decompiling MANEDIT.C's
+ * edit_pacman(), which calls it after editing a pacman's mirrored
+ * (facing-the-other-way) walk sprite. Still pending full decompilation
+ * as part of SPRITGEN.C.
+ */
+void copy_gen_to_mirror_sprite(SPRITE_STRUCT far * sprite);
+
 #endif /* SPRITGEN_H */

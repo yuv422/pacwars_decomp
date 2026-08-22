@@ -27,9 +27,9 @@ static char net_path[140] = "MAZEPATH";
 
 /* storage for the _max_x/_max_y/_sc_width globals declared extern in
    PACWARS.H */
-int _max_x;
-int _max_y;
-int _sc_width;
+int _max_x = 240;
+int _max_y = 200;
+int _sc_width = 320;
 
 /* storage for the _wstation global declared extern in PACWARS.H --
    _VSIZE/_HSIZE/_maze/_maze_attrib's real owners (choose_edit_maze /

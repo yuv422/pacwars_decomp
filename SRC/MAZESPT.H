@@ -54,4 +54,11 @@ void setup_ir_sprite_buffer(void);
  */
 extern SPRITE_STRUCT _ir_sprite_buf[16];
 
+/*
+ * Per-character name storage, defined in MAZESPT.C -- also used directly
+ * by MANEDIT.C's buffer_pacmen()/restore_pacmen()/display_edit_pacman()
+ * (see the comment above its definition there).
+ */
+extern char _pacname[10][13];
+
 #endif /* MAZESPT_H */

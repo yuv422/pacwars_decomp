@@ -71,14 +71,21 @@ int _spiked;
 /*
  * Per-character name storage (10 playable characters, 13 bytes each --
  * curr_pacman * 0xd stride, confirmed via load_name()/save_name()'s raw
- * disassembly). Confirmed file-local to this module (only referenced
- * from load_names/save_names/load_name/save_name below). Default values
- * recovered byte-for-byte via read_memory at 340e:24be -- identical text
- * to the hardcoded roster-display defaults in MAZEUTIL.C's
- * display_pacmen(), confirming this is the real backing store for the
- * names shown/edited there and in MANEDIT.C.
+ * disassembly). Default values recovered byte-for-byte via read_memory
+ * at 340e:24be -- identical text to the hardcoded roster-display
+ * defaults in MAZEUTIL.C's display_pacmen(), confirming this is the
+ * real backing store for the names shown/edited there.
+ *
+ * NOT file-local after all: MANEDIT.C's buffer_pacmen(), restore_pacmen()
+ * and display_edit_pacman() also reference this same array directly
+ * (confirmed via their decompiled `&_pacname + i*0xd` addressing, same
+ * 13-byte stride) -- get_xrefs_to on 340e:24be came back empty because
+ * every reference in this binary is through computed/indexed addressing
+ * rather than a plain load, not because there's only one referencing
+ * module. Declared non-static and exported via MAZESPT.H accordingly
+ * (matching the established _ir_sprite_buf precedent below).
  */
-static char _pacname[10][13] = {
+char _pacname[10][13] = {
     "PacMan    ", "PacPsycho ", "PacRat    ", "PacTart   ",
     "PacBaby   ", "PacRambo  ", "PacPerv   ", "PacTurd   ",
     "PacBiggles", "PacBum    "

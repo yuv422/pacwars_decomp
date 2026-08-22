@@ -196,3 +196,6 @@ void unk_func_275D(int x, int y, unsigned char far * text_ptr, int fore, int bac
 {
 }
 
+void copy_gen_to_mirror_sprite(SPRITE_STRUCT far * sprite)
+{
+}
