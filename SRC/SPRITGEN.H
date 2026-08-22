@@ -2,7 +2,17 @@
  * SPRITGEN.H
  *
  * Public prototypes exported by SPRITGEN.C (functions that appear in
- * PACWARS.EXE's global symbol table). Reconstructed from PACWARS.TXT.
+ * PACWARS.EXE's global symbol table). Reconstructed from PACWARS.TXT,
+ * corrected against Ghidra decompilation/disassembly of segment 1ae7.
+ *
+ * All other functions in SPRITGEN.C (sprite_gen's many editing
+ * sub-tools: save_routine, edit_sprite, edit_mask, restore_mask, the
+ * clip/flip/rotate/move/size/animate helpers, the drawing primitives,
+ * select_colour, help_commands, hlite, read_sprite/write_sprite) are
+ * called only from within SPRITGEN.C itself (confirmed via Ghidra
+ * xref analysis -- every call site to each of them resolves to an
+ * address inside this module's own segment 1ae7), so they are not
+ * declared here.
  */
 #ifndef SPRITGEN_H
 #define SPRITGEN_H
@@ -19,8 +29,7 @@ void copy_gen_to_sprite(SPRITE_STRUCT far * sprite);
  * button() in MAZEEDIT.C. Confirmed real, exported functions via Ghidra
  * (_copy_sprite_range_to_gen @ 1ae7:24b7, _copy_gen_to_sprite_range @
  * 1ae7:2550, in this module's own segment). Signature recovered from
- * their only call sites so far, in MAZEEDIT.C's edit_block_range();
- * still pending full decompilation as part of SPRITGEN.C.
+ * their only call sites so far, in MAZEEDIT.C's edit_block_range().
  */
 void copy_sprite_range_to_gen(int row_offset, int col_offset, SPRITE_STRUCT far * sprite);
 void copy_gen_to_sprite_range(int row_offset, int col_offset, SPRITE_STRUCT far * sprite);
@@ -30,8 +39,7 @@ void copy_gen_to_sprite_range(int row_offset, int col_offset, SPRITE_STRUCT far 
  * above. Confirmed real via Ghidra (_copy_gen_to_mirror_sprite @
  * 1ae7:25cb, this module's own segment) while decompiling MANEDIT.C's
  * edit_pacman(), which calls it after editing a pacman's mirrored
- * (facing-the-other-way) walk sprite. Still pending full decompilation
- * as part of SPRITGEN.C.
+ * (facing-the-other-way) walk sprite.
  */
 void copy_gen_to_mirror_sprite(SPRITE_STRUCT far * sprite);
 
