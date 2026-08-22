@@ -52,10 +52,130 @@ int _visible_count;
 /* storage for the edit_name_flag global declared extern in PACWARS.H */
 int edit_name_flag;
 
-/* _maze/_maze_attrib's real owner (alloc_maze_def_mem, MAZEEDIT.C) is now
-   decompiled, so their storage lives there; _animate_maze's allocation
-   site is still unidentified, so it stays here for now. */
-ANIM_OB far * _animate_maze[4][3];
+/*
+ * _animate_maze's pointers are NOT runtime-allocated at all -- unlike
+ * MAZEANIM.C's unrelated ANIM_OBJECT-based room-animation system (which
+ * does calloc() a fresh per-object scratch buffer at startup), the
+ * original binary just points each of these 12 slots directly at
+ * statically-compiled ANIM_OB[] data baked into the .EXE's data segment
+ * (340e:00f9-0308, immediately followed by the _animate_maze array
+ * itself at 340e:0309 -- confirmed via read_memory). Recovered
+ * byte-for-byte below.
+ *
+ * Field values decoded per update_room()'s own usage above: hoffset/
+ * voffset are the maze-cell coordinates being animated (def[hoffset]
+ * [voffset]); row/col set the animation's rate/phase; offset is the
+ * frame count (the modulus); animate/redraw aren't read by update_room
+ * itself (possibly consumed elsewhere, or vestigial) but are preserved
+ * as compiled. Lists are hoffset==-1 terminated, matching update_room's
+ * own loop condition.
+ *
+ * Each entry's prev_frame_buffer -- despite the name/comment it shares
+ * with MAZEANIM.H's unrelated ANIM_OBJECT struct, where it really is a
+ * runtime scratch pointer -- is, for THIS struct, read directly as
+ * compile-time animation data by update_room() (`frame_table[frame_
+ * index]`): the sequence of maze tile IDs the cell cycles through.
+ * Every real pointer in the original binary lands inside one 87-byte
+ * table immediately preceding this data (340e:00a2-00f8) -- recovered
+ * as one flat array below (anim_frame_tiles) since the individual
+ * ANIM_OB entries reference overlapping/adjacent offsets within it
+ * rather than cleanly separate arrays.
+ */
+static unsigned char anim_frame_tiles[87] = {
+    /* 0x00a2 */ 0,0,0,0,12,13,12,13,0,0,0,0,13,12,13,12,
+    /* 0x00b2 */ 0,0,0,0,14,15,14,15,0,0,0,0,15,14,15,14,
+    /* 0x00c2 */ 0,0,0,29,29,29,29,29,31,31,31,30,30,30,30,30,
+    /* 0x00d2 */ 0,0,0,33,33,33,33,33,35,35,35,32,32,32,32,32,
+    /* 0x00e2 */ 54,55,20,26,40,52,40,52,41,53,41,53,255,0,0,0,
+    /* 0x00f2 */ 0,0,0,0,0,0,0
+};
+
+/*
+ * Empty-room terminators. The original binary actually has TWO distinct
+ * lone-{-1,...} records for this: room (1,0) gets its own at 340e:0243,
+ * while rooms (2,0)-(2,2) and (3,0)-(3,2) all share a second one at
+ * 340e:02fe. Byte-identical content, but kept as separate compiled
+ * objects here to match that real layout (rather than collapsing all 7
+ * empty slots onto one shared array).
+ */
+static ANIM_OB anim_room_1_0[] = {
+    { -1, 0, 0, 0, 0, 0, 0, 0 }
+};
+
+static ANIM_OB anim_room_empty[] = {
+    { -1, 0, 0, 0, 0, 0, 0, 0 }
+};
+
+static ANIM_OB anim_room_0_0[] = {
+    { 16, 19, 8, 0, 8, -1, 1, (int far *) &anim_frame_tiles[0] },
+    { 16, 20, 8, 0, 8, -1, 1, (int far *) &anim_frame_tiles[8] },
+    { 16, 21, 8, 0, 8, -1, 1, (int far *) &anim_frame_tiles[0] },
+    { 17, 22, 8, 4, 8, -1, 1, (int far *) &anim_frame_tiles[16] },
+    { 18, 22, 8, 4, 8, -1, 1, (int far *) &anim_frame_tiles[24] },
+    { 19, 22, 8, 4, 8, -1, 1, (int far *) &anim_frame_tiles[16] },
+    { 11, 29, 8, 4, 8, -1, 1, (int far *) &anim_frame_tiles[16] },
+    { 12, 29, 8, 4, 8, -1, 1, (int far *) &anim_frame_tiles[24] },
+    { 13, 29, 8, 4, 8, -1, 1, (int far *) &anim_frame_tiles[16] },
+    { 17, 29, 8, 0, 8, -1, 1, (int far *) &anim_frame_tiles[16] },
+    { 18, 29, 8, 0, 8, -1, 1, (int far *) &anim_frame_tiles[24] },
+    { 19, 29, 8, 0, 8, -1, 1, (int far *) &anim_frame_tiles[16] },
+    { 20, 23, 8, 0, 8, -1, 1, (int far *) &anim_frame_tiles[0] },
+    { 20, 24, 8, 0, 8, -1, 1, (int far *) &anim_frame_tiles[8] },
+    { 20, 25, 8, 0, 8, -1, 1, (int far *) &anim_frame_tiles[0] },
+    { 16, 26, 8, 4, 8, -1, 1, (int far *) &anim_frame_tiles[0] },
+    { 16, 27, 8, 4, 8, -1, 1, (int far *) &anim_frame_tiles[8] },
+    { 16, 28, 8, 4, 8, -1, 1, (int far *) &anim_frame_tiles[0] },
+    { -1, 0, 0, 0, 0, 0, 0, 0 }
+};
+
+static ANIM_OB anim_room_0_1[] = {
+    { 11, 0, 8, 4, 8, -1, 1, (int far *) &anim_frame_tiles[16] },
+    { 12, 0, 8, 4, 8, -1, 1, (int far *) &anim_frame_tiles[24] },
+    { 13, 0, 8, 4, 8, -1, 1, (int far *) &anim_frame_tiles[16] },
+    { 17, 0, 8, 0, 8, -1, 1, (int far *) &anim_frame_tiles[16] },
+    { 18, 0, 8, 0, 8, -1, 1, (int far *) &anim_frame_tiles[24] },
+    { 19, 0, 8, 0, 8, -1, 1, (int far *) &anim_frame_tiles[16] },
+    { -1, 0, 0, 0, 0, 0, 0, 0 }
+};
+
+static ANIM_OB anim_room_0_2[] = {
+    { 8, 23, 8, 0, 2, -1, 0, (int far *) &anim_frame_tiles[66] },
+    { 18, 15, 4, 0, 8, -1, 0, (int far *) &anim_frame_tiles[68] },
+    { 18, 16, 4, 0, 8, -1, 0, (int far *) &anim_frame_tiles[72] },
+    { -1, 0, 0, 0, 0, 0, 0, 0 }
+};
+
+static ANIM_OB anim_room_1_1[] = {
+    { 11, 13, 4, 0, 8, -1, 0, (int far *) &anim_frame_tiles[68] },
+    { 11, 14, 4, 0, 8, -1, 0, (int far *) &anim_frame_tiles[72] },
+    { -1, 0, 0, 0, 0, 0, 0, 0 }
+};
+
+static ANIM_OB anim_room_1_2[] = {
+    { 12, 4, 8, 1, 8, -1, 1, (int far *) &anim_frame_tiles[32] },
+    { 19, 8, 8, 0, 8, -1, 1, (int far *) &anim_frame_tiles[32] },
+    { 17, 14, 8, 4, 8, -1, 1, (int far *) &anim_frame_tiles[32] },
+    { 11, 4, 8, 1, 8, -1, 0, (int far *) &anim_frame_tiles[40] },
+    { 18, 8, 8, 0, 8, -1, 0, (int far *) &anim_frame_tiles[40] },
+    { 16, 14, 8, 4, 8, -1, 0, (int far *) &anim_frame_tiles[40] },
+    { 13, 4, 8, 1, 8, -1, 1, (int far *) &anim_frame_tiles[48] },
+    { 20, 8, 8, 0, 8, -1, 1, (int far *) &anim_frame_tiles[48] },
+    { 18, 14, 8, 4, 8, -1, 1, (int far *) &anim_frame_tiles[48] },
+    { 14, 4, 8, 1, 8, -1, 0, (int far *) &anim_frame_tiles[56] },
+    { 21, 8, 8, 0, 8, -1, 0, (int far *) &anim_frame_tiles[56] },
+    { 19, 14, 8, 4, 8, -1, 0, (int far *) &anim_frame_tiles[56] },
+    { -1, 0, 0, 0, 0, 0, 0, 0 }
+};
+
+/* storage for the _animate_maze global declared extern in PACWARS.H,
+   indexed [voff][hoff] -- see the comment above for how this data was
+   recovered. */
+ANIM_OB far * _animate_maze[4][3] = {
+    { anim_room_0_0, anim_room_0_1, anim_room_0_2 },
+    { anim_room_1_0, anim_room_1_1, anim_room_1_2 },
+    { anim_room_empty, anim_room_empty, anim_room_empty },
+    { anim_room_empty, anim_room_empty, anim_room_empty }
+};
 
 /* forward declarations: update_map() (below) calls maze_def(),
    attrib_maze_def(), and update_room(), all defined further down in this

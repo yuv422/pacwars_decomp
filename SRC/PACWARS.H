@@ -466,10 +466,12 @@ extern int _undo_voff;
  * half, one for the segment half two bytes later -- rather than
  * recognizing a single far-pointer array, a known decompiler limitation
  * for this binary). Storage for _maze/_maze_attrib is defined in
- * MAZEEDIT.C. _animate_maze's allocation site was not identified (only
- * read from update_map()); the same [voff][hoff] indexing/stride is
- * confirmed by that read site's disassembly. Storage defined in
- * MAZEUTIL.C for now, as the first module needing it.
+ * MAZEEDIT.C. _animate_maze is NOT runtime-allocated at all -- each of
+ * its 12 slots points at statically-compiled ANIM_OB[] data baked into
+ * the original .EXE's data segment (confirmed via read_memory at
+ * 340e:00f9-0308); that data, and the pointers themselves, are
+ * reproduced byte-for-byte in MAZEUTIL.C, which is where storage is
+ * defined.
  */
 extern void far * _maze[4][3];
 extern void far * _maze_attrib[4][3];
