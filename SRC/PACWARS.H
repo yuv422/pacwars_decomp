@@ -125,17 +125,27 @@ typedef struct ANIM_ELEMENT_tag {
 
 typedef struct ANIM_FRAME_tag {
     int num_elements;
-    unsigned char far * element_array;  /* TODO: anonymous nested struct, verify layout */
+    ANIM_ELEMENT far * element_array;
 } ANIM_FRAME;
 
 typedef ANIM_FRAME far *ANIM_FRAME_PTR;
 
+/*
+ * frame: originally declared `ANIM_FRAME_PTR far * frame` (an extra level
+ * of indirection -- array of far pointers to ANIM_FRAME). Disassembly of
+ * MAZEANIM.C's room_animation_func (1a54:0432-044e) shows the per-frame
+ * address computed as `frame_base + next_state * 6` (6 = sizeof(ANIM_FRAME),
+ * confirmed via get_struct_layout) with no extra pointer dereference --
+ * i.e. `frame` is a plain array of ANIM_FRAME structs, not an array of
+ * pointers to them. Fixed to the single-indirection ANIM_FRAME_PTR
+ * (= ANIM_FRAME far *) accordingly.
+ */
 typedef struct ANIM_SEQUENCE_tag {
     int frames;
     char rate;
     char w;
     char h;
-    ANIM_FRAME_PTR far * frame;
+    ANIM_FRAME_PTR frame;
 } ANIM_SEQUENCE;
 
 typedef struct ANIM_OB_tag {
