@@ -38,10 +38,10 @@
  * 1ae7). Sizes: _max_w * _max_h = 80 * 54 = 4320 bytes, the largest
  * sprite this editor supports.
  */
-static int _sprite_w;              /* width of the sprite currently being edited */
-static int _sprite_h;              /* height of the sprite currently being edited */
-static int _bitw;                  /* on-screen pixel width of one sprite cell (grid zoom) */
-static int _bith;                  /* on-screen pixel height of one sprite cell (grid zoom) */
+static int _sprite_w = 0x14;              /* width of the sprite currently being edited */
+static int _sprite_h = 0x14;              /* height of the sprite currently being edited */
+static int _bitw = 7;                  /* on-screen pixel width of one sprite cell (grid zoom) */
+static int _bith = 7;                  /* on-screen pixel height of one sprite cell (grid zoom) */
 
 /*
  * Never written anywhere in the program (confirmed via get_xrefs_to --
@@ -871,7 +871,7 @@ static void draw_palette_colour(int colour)
 
 static void control_text(char far *text_ptr)
 {
-    text256(0xe, 3, (unsigned char far *) text_ptr, 0xd4, 0);
+    text256(0xd4, 0, (unsigned char far *) text_ptr, 0xe, 3);
 }
 
 static void grid_pos(int x, int y)
@@ -879,7 +879,7 @@ static void grid_pos(int x, int y)
     char buf[10];
 
     sprintf(buf, "x=%2d y=%2d", x, y);
-    text256(_max_w + 7, 0, (unsigned char far *) buf, 0x46, 0);
+    text256(0x46, 0, (unsigned char far *) buf, 7, 0);
 }
 
 static void grid_size(void)
@@ -887,13 +887,13 @@ static void grid_size(void)
     char buf[10];
 
     sprintf(buf, "w=%2d h=%2d", _sprite_w, _sprite_h);
-    text256(_max_w + 7, 0x7d, (unsigned char far *) buf, 0x46, 0);
+    text256(0x7d, 0, (unsigned char far *) buf, 7, 0);
 }
 
 static void draw_file_name(char far *text_ptr)
 {
-    text256(0, 0, (unsigned char far *) "                        ", 0, 0);
-    text256(0xe, 2, (unsigned char far *) text_ptr, 0, 0);
+    text256(0, 0, (unsigned char far *) "            ", 0, 0);
+    text256(0, 0, (unsigned char far *) text_ptr, 0xe, 2);
 }
 
 static void draw_palette(void)
@@ -1020,18 +1020,18 @@ static void help_commands(void)
     ym += 10;
 
     for (i = 0; i < 0xf; i++) {
-        text256(xm + 10, ym + i * 9, (unsigned char far *) keys1[i], 1, 0xe);
-        text256(xm + 10, ym + i * 9, (unsigned char far *) desc1[i], 1, 0xe);
+        text256(xm + 10, ym + i * 9, (unsigned char far *) desc1[i], 0xb, 1);
+        text256(xm + 10, ym + i * 9, (unsigned char far *) keys1[i], 0xe, 1);
     }
     ym += 0x96;
     for (i = 0; i < 0xa; i++) {
-        text256(xm + 10, ym + i * 9, (unsigned char far *) keys2[i], 1, 0xe);
-        text256(xm + 10, ym + i * 9, (unsigned char far *) desc2[i], 1, 0xe);
+        text256(xm + 10, ym + i * 9, (unsigned char far *) desc2[i], 0xb, 1);
+        text256(xm + 10, ym + i * 9, (unsigned char far *) keys2[i], 0xe, 1);
     }
 
     {
         char prompt[] = " Press Space Bar ";
-        text256((320 - (int) strlen(prompt) * 5) / 2, ym + h - 0xee, (unsigned char far *) prompt, 1, 0xe);
+        text256((320 - (int) strlen(prompt) * 5) / 2, ym + h - 0xee, (unsigned char far *) prompt, 0xe, 2);
     }
 
     kb_event(&inkey, &ext);
