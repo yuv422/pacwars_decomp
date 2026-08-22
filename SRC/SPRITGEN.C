@@ -292,12 +292,20 @@ static int edit_sprite(int xmargin, int ymargin, int far *sprite_index, int num_
             case 'R':
             case 'S':
                 pixel_hlite(0, _sprite_cursor, xmargin, ymargin, _sprite_h);
-                return inkey;
+                return key;
             case 'P':
-                /* pick colour under cursor, then exit into the palette */
+                /* pick colour under cursor, then exit into the palette.
+                 * L/M/R/S/P all converge on a shared tail at 1ae7:0649
+                 * that returns [BP-2] -- the same slot holding the
+                 * toupper'd key, not raw inkey (confirmed by reading the
+                 * H..V jump table at 1ae7:07b7: L, M, R, and S entries all
+                 * point straight at this same 0649 address). Returning raw
+                 * inkey here meant a lowercase 'p' handed sprite_gen's
+                 * dispatch loop 'p' instead of 'P', matching no case there
+                 * and hanging the editor. */
                 _colour_index = _sprite_buffer[row * 80 + col];
                 pixel_hlite(0, _sprite_cursor, xmargin, ymargin, _sprite_h);
-                return inkey;
+                return key;
             case 'U':
                 /* undo: restore from the Clear snapshot */
                 memcpy(_sprite_buffer, _scratch_buffer, 4320);
