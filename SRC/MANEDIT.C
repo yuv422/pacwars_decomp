@@ -990,20 +990,29 @@ int load_all_files(void)
 }
 
 /*
- * fill_list(): loads character data for _pac_files[spos..spos+num-1]
- * into the corresponding _sprites[]/_pacname[] slots, ahead of
- * display_list_pacmen() drawing that page. The `curr_pacman` parameter
- * is part of the real exported signature (per PACWARS.TXT) but is
- * never actually read by the compiled function -- confirmed via
- * disassembly; every real call site passes 0 for it anyway (see
- * list_pacmen()).
+ * fill_list(): loads _pac_files[curr_pacman..curr_pacman+num-1] into
+ * _sprites[]/_pacname[] slots spos..spos+num-1, ahead of
+ * display_list_pacmen() drawing that page.
+ *
+ * curr_pacman and spos are NOT the same index and both genuinely matter
+ * -- confirmed via the raw disassembly at 1d69:1edf, which keeps two
+ * separate counters: DI (starts at curr_pacman, indexes _pac_files[] for
+ * the source file) and SI (starts at spos, passed as load_character()'s
+ * own "curr_pacman" slot parameter). An earlier pass here collapsed both
+ * to the same loop variable and claimed the curr_pacman parameter was
+ * unread, which was wrong -- that bug meant scrolling the character list
+ * (call sites that pass file_offset/file_offset+9 as curr_pacman with a
+ * nonzero spos) kept reloading _pac_files[0..] into the wrong slots
+ * instead of the actually-scrolled-to files.
  */
 void fill_list(int curr_pacman, int spos, int num)
 {
-    int i;
+    int i, file_idx;
 
+    file_idx = curr_pacman;
     for (i = spos; i < spos + num; i++) {
-        load_character(i, _pac_files[i]);
+        load_character(i, _pac_files[file_idx]);
+        file_idx++;
     }
 }
 
