@@ -711,7 +711,7 @@ static int size_sprite(int xm, int ym)
             return 'E';
         } else if (inkey == 0) {
             switch (ext) {
-            case 0x4b: /* Left: shrink height */
+            case 0x48: /* Left: shrink height */
                 if (_sprite_h > 1) {
                     _sprite_h--;
                     draw_grid(xm, ym, _sprite_w, _sprite_h);
@@ -721,21 +721,21 @@ static int size_sprite(int xm, int ym)
             case 0x3b: /* F1 */
                 help_commands();
                 break;
-            case 0x48: /* Up: shrink width */
+            case 0x4b: /* Up: shrink width */
                 if (_sprite_w > 1) {
                     _sprite_w--;
                     draw_grid(xm, ym, _sprite_w, _sprite_h);
                     draw_sprite(_sprite_w, _sprite_h, xm, ym, 1);
                 }
                 break;
-            case 0x4d: /* Right: grow height */
+            case 0x50: /* Right: grow height */
                 if (_sprite_h < _max_h) {
                     _sprite_h++;
                     draw_grid(xm, ym, _sprite_w, _sprite_h);
                     draw_sprite(_sprite_w, _sprite_h, xm, ym, 1);
                 }
                 break;
-            case 0x50: /* Down: grow width */
+            case 0x4d: /* Down: grow width */
                 if (_sprite_w < _max_w) {
                     _sprite_w++;
                     draw_grid(xm, ym, _sprite_w, _sprite_h);
