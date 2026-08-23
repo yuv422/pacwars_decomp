@@ -234,10 +234,10 @@ int pacwars_menu(int curr_option)
             }
         }
         delay(0xf);
-    } while (esc == 0 && inkey != 0x1b && inkey != 0xd);
+    } while (_esc == 0 && inkey != 0x1b && inkey != 0xd);
 
     if (inkey == 0x1b) {
-        esc = 1;
+        _esc = 1;
     }
     set_key_vect(0, NULL);
     return curr_option;
@@ -439,10 +439,10 @@ void edit_attributes(int curr_hoff, int curr_voff, int far * curr_row, int far *
             }
         }
         delay(0xf);
-    } while (esc == 0 && inkey != 0x1b);
+    } while (_esc == 0 && inkey != 0x1b);
 
-    if (inkey == 0x1b || esc == 1) {
-        esc = 0;
+    if (inkey == 0x1b || _esc == 1) {
+        _esc = 0;
     }
     *curr_row = row;
     *curr_col = col;
@@ -514,10 +514,10 @@ int choose_edit_maze(int far * hoff, int far * voff)
              */
             kb_event(&inkey, &ext);
 
-            if ((inkey == 0x1b || esc == 1) && (curr_voff != -1 || curr_hoff != 0)) {
+            if ((inkey == 0x1b || _esc == 1) && (curr_voff != -1 || curr_hoff != 0)) {
                 inkey = 0;
                 ext = 0x47;
-                esc = 0;
+                _esc = 0;
                 kb_flush();
             }
             if (inkey == 0 && ext == 0x4d &&
@@ -582,9 +582,9 @@ int choose_edit_maze(int far * hoff, int far * voff)
                 display_filestatus(0, 1);
                 inkey = 0;
             }
-            if ((inkey == 0x1b || esc == 1) && (curr_voff != -1 || curr_hoff != 0)) {
+            if ((inkey == 0x1b || _esc == 1) && (curr_voff != -1 || curr_hoff != 0)) {
                 inkey = 0;
-                esc = 0;
+                _esc = 0;
                 curr_voff = -1;
                 curr_hoff = 0;
             }
@@ -592,10 +592,10 @@ int choose_edit_maze(int far * hoff, int far * voff)
 
         display_scroll();
         delay(0xf);
-    } while (esc == 0 && inkey != 0x1b && inkey != 0xd);
+    } while (_esc == 0 && inkey != 0x1b && inkey != 0xd);
 
     if (inkey == 0x1b) {
-        esc = 1;
+        _esc = 1;
     }
     set_key_vect(0, NULL);
     *hoff = curr_hoff;
@@ -754,10 +754,10 @@ void edit_maze(int curr_hoff, int curr_voff)
         }
 skip_menu_redraw:
         delay(0xf);
-    } while (esc == 0 && inkey != 0x1b);
+    } while (_esc == 0 && inkey != 0x1b);
 
-    if (inkey == 0x1b || esc == 1) {
-        esc = 0;
+    if (inkey == 0x1b || _esc == 1) {
+        _esc = 0;
     }
     set_key_vect(0, NULL);
 }
@@ -911,7 +911,7 @@ skip_range_update:
                 hilite_block(0, curr_hoff, curr_voff, row, col);
                 draw_block_range(0, curr_hoff, curr_voff, srow, scol, erow, ecol);
                 mode = 0;
-                esc = 0;
+                _esc = 0;
                 inkey = 0;
                 hilite_block(1, curr_hoff, curr_voff, srow, scol);
                 row = srow;
@@ -920,11 +920,11 @@ skip_range_update:
         }
 
         delay(0xf);
-        if (esc != 0 || inkey == 0x1b) {
+        if (_esc != 0 || inkey == 0x1b) {
             draw_block_range(0, curr_hoff, curr_voff, srow, scol, erow, ecol);
             hilite_block(0, curr_hoff, curr_voff, row, col);
-            if (inkey == 0x1b || esc == 1) {
-                esc = 0;
+            if (inkey == 0x1b || _esc == 1) {
+                _esc = 0;
             }
             /* NOTE: the original never writes row/col back through
                curr_row/curr_col here -- edit_maze()'s cursor position is
@@ -1155,10 +1155,10 @@ void show_attribs(int curr_hoff, int curr_voff)
             kb_event(&inkey, &ext);
         }
         delay(0xf);
-    } while (esc == 0 && inkey != 0x1b && inkey != 0x20 && inkey != 0xd);
+    } while (_esc == 0 && inkey != 0x1b && inkey != 0x20 && inkey != 0xd);
 
-    if (inkey == 0x1b || esc == 1) {
-        esc = 0;
+    if (inkey == 0x1b || _esc == 1) {
+        _esc = 0;
     }
 }
 
@@ -1360,7 +1360,7 @@ int select_block(int curr_block, int far * offset)
                 hilite_select_block(0, row, col, *offset);
                 draw_block_range2(0, srow, scol, erow, ecol, *offset);
                 mode = 0;
-                esc = 0;
+                _esc = 0;
                 inkey = 0;
                 hilite_select_block(1, srow, scol, *offset);
                 draw_block_box();
@@ -1369,7 +1369,7 @@ int select_block(int curr_block, int far * offset)
             }
         }
         delay(0xf);
-    } while (esc == 0 && inkey != 0x1b && (mode != 0 || (inkey != 0xd && inkey != 0x20)));
+    } while (_esc == 0 && inkey != 0x1b && (mode != 0 || (inkey != 0xd && inkey != 0x20)));
 
     hilite_select_block(0, row, col, *offset);
     draw_block_range2(0, srow, scol, erow, ecol, *offset);
@@ -1764,7 +1764,7 @@ void edit_maze_rows(char far * maze_str, unsigned int far * inkey, unsigned int 
        edit_name() -- see the comment there. */
     key = edit_str(inkey, ext, 1, 0x1c, maze_str, (EDIT_TYPE) 3, -1);
     if (key == 0x1b) {
-        esc = 1;
+        _esc = 1;
     }
 }
 

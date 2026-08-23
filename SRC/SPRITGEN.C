@@ -320,8 +320,9 @@ static int edit_sprite(int xmargin, int ymargin, int far *sprite_index, int num_
         } else if (inkey == 0) {
             switch (ext) {
             case 0x3b: /* F1 */
-                pixel_hlite(0, _sprite_cursor, xmargin, ymargin, _sprite_h);
-                return 'K';
+                // pixel_hlite(0, _sprite_cursor, xmargin, ymargin, _sprite_h);
+                help_commands();
+                break;
             case 0x3c: /* F2 */
                 pixel_hlite(0, _sprite_cursor, xmargin, ymargin, _sprite_h);
                 return 'K';
@@ -1085,8 +1086,8 @@ static void help_commands(void)
                w);
     }
 
-    trbox(xm, ym, w, h, 1);
-    trfbox(xm + 4, ym + 4, w - 8, h - 8, 0xe);
+    trfbox(xm, ym, w, h, 1);
+    trbox(xm + 4, ym + 4, w - 8, h - 8, 0xe);
     xm += 10;
     ym += 10;
 
@@ -1094,7 +1095,7 @@ static void help_commands(void)
         text256(xm + 10, ym + i * 9, (unsigned char far *) desc1[i], 0xb, 1);
         text256(xm + 10, ym + i * 9, (unsigned char far *) keys1[i], 0xe, 1);
     }
-    ym += 0x96;
+    xm += 0x96;
     for (i = 0; i < 0xa; i++) {
         text256(xm + 10, ym + i * 9, (unsigned char far *) desc2[i], 0xb, 1);
         text256(xm + 10, ym + i * 9, (unsigned char far *) keys2[i], 0xe, 1);
@@ -1102,10 +1103,13 @@ static void help_commands(void)
 
     {
         char prompt[] = " Press Space Bar ";
-        text256((320 - (int) strlen(prompt) * 5) / 2, ym + h - 0xee, (unsigned char far *) prompt, 0xe, 2);
+        text256(((int)strlen(prompt) * -5 + 320) / 2, ym + h - 18, (unsigned char far *) prompt, 0xe, 2);
     }
 
     kb_event(&inkey, &ext);
+
+    xm = (320 - w) / 2;
+    ym = (200 - h) / 2;
 
     for (i = 0; i < h; i++) {
         memcpy((unsigned char far *) MK_FP(VGA_SEGMENT, (__disp_page << 15) + (ym + i) * 320 + xm),

@@ -68,7 +68,6 @@ int comms = 1;
 int pacman;
 char curr_name[13];
 unsigned int curr_score;
-int esc;
 int _hoffset;
 int _voffset;
 
@@ -239,10 +238,10 @@ void main(int argc, char *argv[])
                 set_mode(0x13);
                 clear_str((unsigned char far *) curr_name, 12);
                 pacman = choose_edit_pacman(pacman) - 1;
-                if (esc == 0) {
+                if (_esc == 0) {
                     edit_pacman(pacman);
                 }
-            } while (esc == 0);
+            } while (_esc == 0);
             set_mode(3);
             exit(0);
         }
@@ -314,7 +313,7 @@ void main(int argc, char *argv[])
     menu_choice = pacwars_menu(menu_choice);
     clear_str((unsigned char far *) curr_name, 12);
 
-    while (esc == 0) {
+    while (_esc == 0) {
         /*
          * NOTE: this is exactly the switch Ghidra's decompiler could not
          * resolve (it failed to decompile this function at all --
@@ -339,10 +338,10 @@ void main(int argc, char *argv[])
             do {
                 set_mode(0x13);
                 choose_edit_maze(&maze_hoff, &maze_voff);  /* return value unused */
-                if (esc == 0) {
+                if (_esc == 0) {
                     edit_maze(maze_hoff, maze_voff);
                 }
-            } while (esc == 0);
+            } while (_esc == 0);
             reg->registered = (char) saved_registered;
             break;
 
@@ -357,11 +356,11 @@ void main(int argc, char *argv[])
             do {
                 set_mode(0x13);
                 clear_str((unsigned char far *) curr_name, 12);
-                pacman = choose_pacman(pacman) - 1;
-                if (esc == 0) {
+                pacman = choose_edit_pacman(pacman) - 1;
+                if (_esc == 0) {
                     edit_pacman(pacman);
                 }
-            } while (esc == 0);
+            } while (_esc == 0);
             reg->registered = (char) saved_registered;
             break;
 
@@ -382,14 +381,14 @@ void main(int argc, char *argv[])
             break;
         }
 
-        esc = 0;
+        _esc = 0;
         set_mode(0x13);
         menu_choice = pacwars_menu(menu_choice);
         clear_str((unsigned char far *) curr_name, 12);
     }
 
     set_mode(3);
-    esc = 0;
+    _esc = 0;
     exit(0);
 }
 
@@ -433,7 +432,7 @@ void pacwars(void)
             }
         }
 
-        if (esc == 0) {
+        if (_esc == 0) {
             /*
              * NOTE: Ghidra decompiled this call as `main_loop(0x1000)`,
              * but the disassembly at 14df:0709 pushes nothing before the
@@ -445,13 +444,13 @@ void pacwars(void)
             main_loop();
         }
 
-        esc = 0;
+        _esc = 0;
         set_key_vect(0, NULL);
         set_mode(0x13);
         pacman = choose_pacman(pacman) - 1;
         time(&session_end);
 
-        if (esc != 0) {
+        if (_esc != 0) {
             break;
         }
     }
@@ -1319,8 +1318,8 @@ void interrupt key_poll(void)
 
     if (_ctrl_alt_held == 0 || (scancode & 0x80) != 0) {
         switch (scancode) {
-        case 0x01: esc = 1;        handled = 1; break;
-        case 0x81: esc = 0;                     break;
+        case 0x01: _esc = 1;        handled = 1; break;
+        case 0x81: _esc = 0;                     break;
         case 0x11: _wkey = 1;      handled = 1; break;
         case 0x91: _wkey = 0;                   break;
         case 0x14: _tkey = 1;      handled = 1; break;

@@ -460,7 +460,7 @@ void display_instructions(void)
         if (key == 1) {
             kb_event(&inkey, &ext);
         }
-    } while (esc == 0 && inkey != 0x1b && inkey != 0xd);
+    } while (_esc == 0 && inkey != 0x1b && inkey != 0xd);
 }
 
 /*
@@ -546,7 +546,7 @@ int choose_pacman(int curr_pacman)
             if (set_hiscore(curr_score, curr_name, pacman) == -1) {
                 set_mode(3);
                 printf("Cannot open HISCORE.DAT\n");
-                esc = 1;
+                _esc = 1;
                 set_key_vect(0, NULL);
                 return -1;
             }
@@ -614,10 +614,10 @@ int choose_pacman(int curr_pacman)
 
         display_registered_company();
         delay(0xf);
-    } while (esc == 0 && inkey != 0x1b && inkey != 0xd);
+    } while (_esc == 0 && inkey != 0x1b && inkey != 0xd);
 
     if (inkey == 0x1b) {
-        esc = 1;
+        _esc = 1;
     }
     set_key_vect(0, NULL);
     return curr_pacman + 1;
@@ -659,7 +659,7 @@ void edit_name(char far * name_str)
        decompilation pass, which may reveal the enum needs a 4th value. */
     key = edit_str(&inkey, &ext, 6, 0x1a, name_str, (EDIT_TYPE) 3, 0);
     if (key == 0x1b) {
-        esc = 1;
+        _esc = 1;
     }
     trbox(0x9d, 0x2d, 0x96, 0xe, 0);
     if (key == 0x3b) {
@@ -768,7 +768,7 @@ void pause_time(void)
                 }
             }
             delay(0xf);
-            if (reg->registered == 1 && esc == 1) {
+            if (reg->registered == 1 && _esc == 1) {
                 return;
             }
         }

@@ -306,7 +306,6 @@ extern REGISTER_STRUCT far * reg;  /* pointer to the loaded registration record 
 extern int pacman;                 /* index of the selected pacman character, 0-based */
 extern char curr_name[13];         /* current player's name, as entered/edited */
 extern unsigned int curr_score;    /* current player's score */
-extern int esc;                    /* set nonzero to signal "return to menu" from play */
 
 /*
  * F1-pressed latch, set by a key-vector interrupt handler installed in
