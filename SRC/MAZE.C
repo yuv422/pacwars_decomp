@@ -917,6 +917,36 @@ void main_loop(void)
                         ws->shot_x += x_dir;
                         ws->shot_y += y_dir;
                         ws->shot_dir = x_dir;
+                    } else {
+                        /* unguided shot: this whole branch was previously
+                           missing, which left plain shots frozen at their
+                           spawn point next to the ship every frame (only
+                           the homing-missile case above ever touched
+                           shot_x/shot_y). Reconstructed from raw
+                           disassembly at 14df:182d-19be (decompile_function
+                           mangled this section into unreadable CONCAT/shift
+                           pseudocode, so this was traced instruction by
+                           instruction instead): moves the shot 1 px per
+                           testx() call (2 px/frame total) along shot_dir,
+                           using the same wall-collision test player
+                           movement uses (testx(), see the cur_ship_sprite
+                           calls above). `shot` is tentatively cleared
+                           before the first test and only restored if BOTH
+                           steps succeed -- so a shot that's blocked by a
+                           wall on its very first step this frame is
+                           destroyed outright (shot stays 0) rather than
+                           left sitting in place. */
+                        ws->shot = 0;
+                        if (testx(ws->shot_dir, &_sprites[my_shot_sprite],
+                                  ws->shot_hoffset, ws->shot_voffset) == 1) {
+                            _sprites[my_shot_sprite].spritex += ws->shot_dir;
+                            if (testx(ws->shot_dir, &_sprites[my_shot_sprite],
+                                      ws->shot_hoffset, ws->shot_voffset) == 1) {
+                                _sprites[my_shot_sprite].spritex += ws->shot_dir;
+                                ws->shot_x = _sprites[my_shot_sprite].spritex;
+                                ws->shot = 1;
+                            }
+                        }
                     }
 
                     _sprites[my_shot_sprite].spritex = ws->shot_x;
