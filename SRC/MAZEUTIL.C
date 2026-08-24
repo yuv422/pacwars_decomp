@@ -49,9 +49,6 @@ int _ishot_count;
 int _missile_count;
 int _visible_count;
 
-/* storage for the edit_name_flag global declared extern in PACWARS.H */
-int edit_name_flag;
-
 /*
  * _animate_maze's pointers are NOT runtime-allocated at all -- unlike
  * MAZEANIM.C's unrelated ANIM_OBJECT-based room-animation system (which
@@ -508,6 +505,7 @@ void f1_instructions(void);
  */
 int choose_pacman(int curr_pacman)
 {
+    static int first_in = 1;
     HISCORE hiscore;
     int offset;
     int count;
@@ -532,9 +530,9 @@ int choose_pacman(int curr_pacman)
     disp_hiscore(0, &hiscore);
     f1_instructions();
 
-    if (edit_name_flag == 1) {
+    if (first_in == 1) {
         edit_name(curr_name);
-        edit_name_flag = 0;
+        first_in = 0;
     } else if (comms == 1) {
         for (rank = 0; rank < 6; rank++) {
             if (curr_score > 10 && hiscore.score[rank] < curr_score) {

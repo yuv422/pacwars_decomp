@@ -330,17 +330,6 @@ extern int _missile_count;
 extern int _visible_count;
 
 /*
- * Set to request that choose_pacman() (MAZEUTIL.C) immediately prompt for
- * a name edit the next time it runs, before its normal high-score-beaten
- * check. No write site was found anywhere in the modules decompiled so
- * far via Ghidra xref analysis (the reference in choose_pacman() itself
- * didn't turn up as an xref target either, likely a decompiler/analysis
- * gap rather than truly dead data, since choose_pacman() both reads and
- * clears it). Storage defined in MAZEUTIL.C for now.
- */
-extern int edit_name_flag;
-
-/*
  * Scratch working-copy buffers used by the maze editor (MAZEEDIT.C):
  * maze_buff/maze_abuff hold the currently-edited room's maze/attribute
  * grids, undo_buff/undo_abuff hold a pre-edit snapshot of the same for
