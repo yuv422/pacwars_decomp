@@ -481,6 +481,14 @@ void start_man(MAZE_LOG_STRUCT far * maze_log)
     maze_log->men[_wstation] = 5;
 }
 
+/* TODO Eric remove this */
+void debug_exit(const char * string) {
+    set_key_vect(0, NULL);
+    set_mode(3);
+    printf("\n%s", string);
+    exit(0);
+}
+
 /*
  * The core per-frame game loop for a single station's play session, run
  * once per call to pacwars() (14df:0816-575a, by far the largest function
@@ -1406,7 +1414,7 @@ void interrupt key_pause(void)
 void display_men(MAZE_LOG_STRUCT far * maze_log)
 {
     MAZE_LOG_PACKET far * status;
-    unsigned char sp_buff[100];
+    unsigned char sp_buff[0x100];
     int i;
     int sprite_num;
     int death_frame;
@@ -1712,7 +1720,7 @@ void display_gold(MAZE_LOG_STRUCT far * maze_log, int offset)
  */
 void display_token(MAZE_LOG_STRUCT far * maze_log, int offset)
 {
-    unsigned char sp_buff[100];
+    unsigned char sp_buff[0x100];
     int sprite;
 
     if (maze_log->token.present == 1 &&
@@ -1884,7 +1892,7 @@ void clear_token(MAZE_LOG_STRUCT far * new_log, MAZE_LOG_STRUCT far * maze_log)
  */
 void display_sprite_restore(int x, int y, int sprite)
 {
-    unsigned char sp_buff[100];
+    unsigned char sp_buff[0x100];
 
     _sprites[0x4e0].spritex = x;
     _sprites[0x4e0].spritey = y;
@@ -1905,7 +1913,7 @@ void display_sprite_restore(int x, int y, int sprite)
  */
 void clear_sprite_restore(int x, int y, int sprite)
 {
-    unsigned char sp_buff[100];
+    unsigned char sp_buff[0x100];
 
     _sprites[0x4e0].spritex = x;
     _sprites[0x4e0].spritey = y;
