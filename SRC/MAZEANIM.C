@@ -42,14 +42,27 @@
  * `_animate_buffer[obj[i].animate]` would read out of bounds for
  * anything but index 0. Corrected to the real 9-entry table.
  *
- * NOT yet recovered: each ANIM_SEQUENCE's `frame` pointer (the actual
- * per-frame maze-tile pattern data, at least two more struct levels
- * deep -- ANIM_FRAME[frames], each with its own ANIM_ELEMENT
- * far*-sized element_array). One sequence alone has 102 frames, so
- * fully recovering this would be a substantially larger follow-up pass;
- * left NULL and documented here rather than guessed at. Every other
- * field (the room/object placement data actually asked about, plus
- * each sequence's frame count/rate/dimensions) is real.
+ * Each ANIM_SEQUENCE's `frame` pointer (and every ANIM_FRAME's own
+ * `element_array`) is now recovered too, two more struct levels deep --
+ * ANIM_FRAME[frames], each with its own ANIM_ELEMENT far*-sized
+ * element_array -- via read_memory across 340e:0638-0aff (the element
+ * records) and 340e:0770-0b00 (the frame records), traversed in Ghidra
+ * by typing ANIM_SEQUENCE -> ANIM_FRAME[nFrames] -> ANIM_ELEMENT[n] at
+ * each real pointer target and reading the resulting struct data back
+ * out. Every static array/variable name below matching the pattern
+ * `_zaph`, `_cdrip`, `_torch1`, etc. is Ghidra's own label for that
+ * exact real address (see 340e:0638-0b51 in the Ghidra listing) --
+ * used verbatim as the C identifier, per this whole project's naming
+ * convention.
+ *
+ * Frames whose real data has `num_elements == 0` never dereference
+ * `element_array` (see update_frame()/room_frame()/clear_room_frame()'s
+ * `for (i = 0; i < frame->num_elements; i++)` loops below), so those
+ * are written as `{ 0, 0 }` here for clarity. The original binary
+ * sometimes left a stale non-NULL pointer in that field for such
+ * frames (e.g. _chad's frames 1-14 all point back at 340e:0710, frame
+ * 0's own element) -- confirmed harmless since it's never read, and not
+ * reproduced here since it has no behavioral effect.
  */
 static ANIM_OBJECT anim_obj_empty[] = {
     { -1, 0, 0, 0, 0, 0, 0, 0, 0 }
@@ -114,22 +127,259 @@ ANIM_OBJECT far * _animate_maze_rooms[4][3] = {
     { anim_obj_empty,    anim_obj_empty,    anim_obj_empty    }
 };
 
-static ANIM_SEQUENCE anim_seq_0 = { 8, 32, 3, 1, 0 };
-static ANIM_SEQUENCE anim_seq_1 = { 8, 32, 1, 3, 0 };
-static ANIM_SEQUENCE anim_seq_2 = { 8, 32, 1, 4, 0 };
-static ANIM_SEQUENCE anim_seq_3 = { 2, 32, 1, 1, 0 };
-static ANIM_SEQUENCE anim_seq_4 = { 2, 32, 1, 1, 0 };
-static ANIM_SEQUENCE anim_seq_5 = { 2, 32, 1, 1, 0 };
-static ANIM_SEQUENCE anim_seq_6 = { 4, 16, 1, 1, 0 };
-static ANIM_SEQUENCE anim_seq_7 = { 102, 2, 1, 1, 0 };
-static ANIM_SEQUENCE anim_seq_8 = { 16, 64, 1, 1, 0 };
+/* --- zap_horiz (_zap_horiz, 340e:0b00, pFrame -> _zaph @ 340e:0770) ---
+ * Elements confirmed via read_memory at 340e:0638-0668. */
+static ANIM_ELEMENT _zaph1[3] = { { 0, 0, 12, 0 }, { 0, 1, 13, 0 }, { 0, 2, 12, 0 } };
+static ANIM_ELEMENT _zaph2[3] = { { 0, 0, 13, 0 }, { 0, 1, 12, 0 }, { 0, 2, 13, 0 } };
+static ANIM_ELEMENT _zaph3[3] = { { 0, 0,  0, 0 }, { 0, 1,  0, 0 }, { 0, 2,  0, 0 } };
+
+static ANIM_FRAME _zaph[8] = {
+    { 3, _zaph1 },
+    { 3, _zaph2 },
+    { 3, _zaph1 },
+    { 3, _zaph2 },
+    { 3, _zaph3 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 }
+};
+
+/* --- zap_vert (_zap_vert, 340e:0b09, pFrame -> _zapv @ 340e:07a0) ---
+ * Elements confirmed via read_memory at 340e:066e-069e. Frame 4's
+ * elements are real (num_elements == 3), just all block == 0 -- an
+ * explicit "blank tile" draw state, distinct from frames 5-7 which
+ * skip drawing entirely (num_elements == 0). */
+static ANIM_ELEMENT _zapv1[3] = { { 0, 0, 14, 0 }, { 1, 0, 15, 0 }, { 2, 0, 14, 0 } };
+static ANIM_ELEMENT _zapv2[3] = { { 0, 0, 15, 0 }, { 1, 0, 14, 0 }, { 2, 0, 15, 0 } };
+static ANIM_ELEMENT _zapv3[3] = { { 0, 0,  0, 0 }, { 1, 0,  0, 0 }, { 2, 0,  0, 0 } };
+
+static ANIM_FRAME _zapv[8] = {
+    { 3, _zapv1 },
+    { 3, _zapv2 },
+    { 3, _zapv1 },
+    { 3, _zapv2 },
+    { 3, _zapv3 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 }
+};
+
+/* --- pipe_vert (_pipe_vert, 340e:0b12, pFrame -> _pipe @ 340e:07d0) ---
+ * Elements confirmed via read_memory at 340e:06a4-06ce. */
+static ANIM_ELEMENT _pipe1[4] = { { 0, 0, 31, 0 }, { 1, 0, 0, 0 }, { 2, 0, 0, 0 }, { 3, 0, 35, 0 } };
+static ANIM_ELEMENT _pipe2[4] = { { 0, 0, 30, 0 }, { 1, 0, 29, 0 }, { 2, 0, 33, 0 }, { 3, 0, 34, 0 } };
+
+static ANIM_FRAME _pipe[8] = {
+    { 4, _pipe1 },
+    { 4, _pipe1 },
+    { 4, _pipe1 },
+    { 4, _pipe2 },
+    { 4, _pipe2 },
+    { 4, _pipe2 },
+    { 4, _pipe2 },
+    { 4, _pipe2 }
+};
+
+/* --- snake_seq (_snake_seq, 340e:0b1b, pFrame -> _snake_tongue @ 340e:0800) ---
+ * Elements confirmed via read_memory at 340e:06ec-06f2. */
+static ANIM_ELEMENT _snake1[1] = { { 0, 0, 20, 0 } };
+static ANIM_ELEMENT _snake2[1] = { { 0, 0, 26, 0 } };
+
+static ANIM_FRAME _snake_tongue[2] = {
+    { 1, _snake1 },
+    { 1, _snake2 }
+};
+
+/* --- plant_teeth (_plant_teeth, 340e:0b24, pFrame -> _plantt @ 340e:080c) ---
+ * Elements confirmed via read_memory at 340e:06d4-06da. */
+static ANIM_ELEMENT _planta[1] = { { 0, 0, 40, 0 } };
+static ANIM_ELEMENT _plantb[1] = { { 0, 0, 52, 0 } };
+
+static ANIM_FRAME _plantt[2] = {
+    { 1, _planta },
+    { 1, _plantb }
+};
+
+/* --- plant_leaf (_plant_leaf, 340e:0b2d, pFrame -> _plantl @ 340e:0818) ---
+ * Elements confirmed via read_memory at 340e:06e0-06e6. */
+static ANIM_ELEMENT _plantc[1] = { { 0, 0, 41, 0 } };
+static ANIM_ELEMENT _plantd[1] = { { 0, 0, 53, 0 } };
+
+static ANIM_FRAME _plantl[2] = {
+    { 1, _plantc },
+    { 1, _plantd }
+};
+
+/* --- torch_flicker (_torch_flicker, 340e:0b36, pFrame -> _torch_flick @ 340e:0824) ---
+ * Elements confirmed via read_memory at 340e:06f8-070a. Note the
+ * attribute field is nonzero here (1) unlike every sequence above --
+ * a real color/attribute change accompanying the flicker. */
+static ANIM_ELEMENT _torch1[1] = { { 0, 0,  57, 1 } };
+static ANIM_ELEMENT _torch2[1] = { { 0, 0, 299, 1 } };
+static ANIM_ELEMENT _torch3[1] = { { 0, 0,  59, 1 } };
+static ANIM_ELEMENT _torch4[1] = { { 0, 0, 319, 1 } };
+
+static ANIM_FRAME _torch_flick[4] = {
+    { 1, _torch1 },
+    { 1, _torch2 },
+    { 1, _torch3 },
+    { 1, _torch4 }
+};
+
+/* --- chemical_drip (_chemical_drip, 340e:0b3f, pFrame -> _drip @ 340e:083c) ---
+ * 102 frames, of which only 14 carry a real element (num_elements == 1);
+ * every other frame is a genuine `{ 0, 0 }` no-draw tick -- an
+ * intermittent drip effect, not a rendering gap. The 14 real elements
+ * are contiguous in the original data segment (340e:071c-076f, one
+ * ANIM_ELEMENT apart) under the single Ghidra label _cdrip; confirmed
+ * via read_memory across both halves of the 612-byte frame table
+ * (340e:083c len 300, 340e:0968 len 312). */
+static ANIM_ELEMENT _cdrip[14] = {
+    { 0, 0, 252, 2 }, { 0, 0, 232, 2 }, { 0, 0, 233, 2 }, { 0, 0, 234, 2 },
+    { 0, 0, 235, 2 }, { 0, 0, 236, 2 }, { 0, 0, 237, 2 }, { 0, 0, 257, 2 },
+    { 0, 0, 277, 2 }, { 0, 0, 297, 2 }, { 0, 0, 317, 2 }, { 0, 0, 337, 2 },
+    { 0, 0, 357, 2 }, { 0, 0, 377, 2 }
+};
+
+static ANIM_FRAME _drip[102] = {
+    { 1, &_cdrip[0] },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 1, &_cdrip[1] },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 1, &_cdrip[2] },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 1, &_cdrip[3] },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 1, &_cdrip[4] },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 1, &_cdrip[5] },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 1, &_cdrip[6] },
+    { 1, &_cdrip[7] },
+    { 1, &_cdrip[8] },
+    { 1, &_cdrip[9] },
+    { 1, &_cdrip[10] },
+    { 1, &_cdrip[11] },
+    { 1, &_cdrip[12] },
+    { 1, &_cdrip[13] }
+};
+
+/* --- chad_chalk (_chad_chalk, 340e:0b48, pFrame -> _chad @ 340e:0aa0) ---
+ * Elements confirmed via read_memory at 340e:0710/0716 (16-frame table
+ * re-read and decoded fresh this pass: frames 1-14 are all `{ 0, 0 }`
+ * in the source's data too, since they carry num_elements == 0 in the
+ * original -- see the header comment above on why the original
+ * binary's stale non-NULL pointer there isn't reproduced). */
+static ANIM_ELEMENT _chad_el1[1] = { { 0, 0, 356, 2 } };
+static ANIM_ELEMENT _chad_el2[1] = { { 0, 0, 316, 2 } };
+
+static ANIM_FRAME _chad[16] = {
+    { 1, _chad_el1 },
+    { 0, 0 }, { 0, 0 }, { 0, 0 }, { 0, 0 }, { 0, 0 }, { 0, 0 }, { 0, 0 },
+    { 0, 0 }, { 0, 0 }, { 0, 0 }, { 0, 0 }, { 0, 0 }, { 0, 0 }, { 0, 0 },
+    { 1, _chad_el2 }
+};
+
+static ANIM_SEQUENCE _zap_horiz     = { 8,   32, 3, 1, _zaph };
+static ANIM_SEQUENCE _zap_vert      = { 8,   32, 1, 3, _zapv };
+static ANIM_SEQUENCE _pipe_vert     = { 8,   32, 1, 4, _pipe };
+static ANIM_SEQUENCE _snake_seq     = { 2,   32, 1, 1, _snake_tongue };
+static ANIM_SEQUENCE _plant_teeth   = { 2,   32, 1, 1, _plantt };
+static ANIM_SEQUENCE _plant_leaf    = { 2,   32, 1, 1, _plantl };
+static ANIM_SEQUENCE _torch_flicker = { 4,   16, 1, 1, _torch_flick };
+static ANIM_SEQUENCE _chemical_drip = { 102,  2, 1, 1, _drip };
+static ANIM_SEQUENCE _chad_chalk    = { 16,  64, 1, 1, _chad };
 
 /* storage for the _animate_buffer global declared extern in
-   MAZEANIM.H -- see the comment above for the frame-data caveat. */
+   MAZEANIM.H. Names match Ghidra's own labels for these exact
+   addresses (340e:0b00-0b51) verbatim, per this project's naming
+   convention. */
 ANIM_SEQUENCE far * _animate_buffer[9] = {
-    &anim_seq_0, &anim_seq_1, &anim_seq_2,
-    &anim_seq_3, &anim_seq_4, &anim_seq_5,
-    &anim_seq_6, &anim_seq_7, &anim_seq_8
+    &_zap_horiz, &_zap_vert, &_pipe_vert,
+    &_snake_seq, &_plant_teeth, &_plant_leaf,
+    &_torch_flicker, &_chemical_drip, &_chad_chalk
 };
 
 /*
