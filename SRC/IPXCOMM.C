@@ -12,10 +12,18 @@
  * tag -- 1=join accepted, 2=join request, 4=join rejected (table full),
  * 8=game data, 0x10=disconnect notice -- confirmed by cross-referencing
  * every site that sets or checks it. Because the tag values are each a
- * distinct power of two, recieve_int()'s `size` parameter (misleadingly
- * named -- confirmed via raw disassembly, not a byte count) doubles as a
- * bitmask of which tags the caller is willing to accept, tested via plain
- * `size & data[0]`.
+ * distinct power of two, recieve_int()'s `datatype` parameter doubles as
+ * a bitmask of which tags the caller is willing to accept, tested via
+ * plain `datatype & data[0]`; `size` is a genuine byte count, used as the
+ * length of the payload memcpy'd into the caller's buffer.
+ *
+ * (An earlier pass at this file had `size` and `datatype` swapped --
+ * `size` used as the bitmask and a fixed 399-byte copy regardless of the
+ * caller's real buffer size -- which happened to work by coincidence at
+ * every call site except join()'s reply-wait, but silently overran the
+ * ~0x76-byte MAZE_LOG_STRUCT destination passed to recieve_ipx()'s
+ * per-frame calls during real network play. See recieve_int()'s own
+ * comment and each corrected call site for the details.)
  *
  * The 5-slot station table (address[5][10] + inuse[5]) is exactly
  * PACWARS.H's existing (and previously unused) CON_INFO struct -- Ghidra
@@ -40,24 +48,35 @@
  * text, which in several spots (e.g. get_next_address(), disc_curr_user())
  * printed the pointer arguments in a misleading order.
  *
- * recieve_int()'s declared 5th parameter, `long timeout`, and 4th,
- * `int datatype`, are both compared against -1 together as a single
- * "block forever" sentinel (14df... err 2d4c:0285-0294) and are otherwise
- * used only in a 32-bit-style elapsed-vs-threshold comparison in the
- * finite-wait branch. The exact interplay between the two in that
- * tie-break could not be pinned down with confidence from the decompiled
- * output (the disassembly's stack-offset accounting for this specific
- * function is unusually hard to follow); implemented here using plain
- * `long` elapsed-tick arithmetic against `timeout` alone, matching this
- * project's established convention of collapsing this era's manual 32-bit
- * comparison boilerplate to plain arithmetic, with `datatype` accepted
- * but not otherwise consulted. This only affects the exact duration of a
- * rarely-hit finite-timeout wait, not the protocol's correctness.
+ * recieve_int()'s declared 5th parameter, `long timeout`, alone gates the
+ * "block forever" sentinel: 2d4c:0285-0294 is two sequential CMP-against
+ * -1 tests on timeout's high word (BP+0x12) then low word (BP+0x10) --
+ * `datatype` (BP+0xe) doesn't participate, it's only ever used for the
+ * tag bitmask test earlier in the loop. (An earlier pass at this
+ * function, before that stack-offset accounting was pinned down, treated
+ * `timeout != -1 || datatype != -1` as the "apply a real timeout" guard;
+ * functionally close enough at most call sites, but see recieve_int()'s
+ * own comment for why it mattered at join()'s reply-wait call.)
  */
 #include "IPXCOMM.H"
 #include "IPXC.H"
 #include <string.h>
 #include <stdio.h>
+#include <stdarg.h>
+#include <io.h>
+
+/* See IPXCOMM.H for what this is. */
+void net_dbg(char * fmt, ...)
+{
+    char buf[64];
+    va_list args;
+
+    va_start(args, fmt);
+    vsprintf(buf, fmt, args);
+    va_end(args);
+
+    write(1, buf, strlen(buf));
+}
 
 /*
  * IPX socket number, shared with IPXC.C (see the extern declaration and
@@ -123,13 +142,41 @@ static IPX_HEADER _disc_ipx;
 /*
  * Polls the 5 standing receive slots (or, if setup!=0, just posts all 5
  * initial receive buffers and returns). Otherwise waits for a completed
- * packet whose data[0] tag matches the `size` bitmask, copies its payload
- * (data[1] onward, i.e. everything after the tag byte) into the caller's
- * `data` buffer, reposts that slot's receive, and returns the tag byte.
- * `timeout`/`datatype` both == -1 blocks forever (checking the ESC-pressed
- * flag each pass); otherwise waits up to `timeout` polling passes. See
- * the file banner comment for the `size`-is-really-a-bitmask and
- * datatype/timeout caveats.
+ * packet whose data[0] tag matches the `datatype` bitmask, copies `size`
+ * bytes of its payload (data[1] onward, i.e. everything after the tag
+ * byte) into the caller's `data` buffer, reposts that slot's receive, and
+ * returns the tag byte. `timeout` == -1 blocks forever (checking the
+ * ESC-pressed flag each pass); otherwise waits up to `timeout` polling
+ * passes.
+ *
+ * CORRECTED from an earlier pass at this function (see prior git history
+ * if needed): `size`/`datatype` were swapped -- `size` was being used as
+ * the tag bitmask and a fixed sizeof(...)-1 (399) was copied regardless
+ * of the caller's real payload size, and the "block forever" test used
+ * `datatype!=-1` as well as `timeout!=-1`. Re-derived from the raw
+ * disassembly at 2d4c:01fa-039c:
+ *   - `MOV DI,[BP+0xc]` (size) is used as the `memcpy` length a few lines
+ *     later (`PUSH DI; ...; CALLF _memcpy`), not as a bitmask.
+ *   - `TEST word ptr [BP+0xe],AX` (datatype, AX = the received tag byte)
+ *     is the actual bitmask test, confirming `datatype` -- not `size` --
+ *     gates which tags are accepted.
+ *   - the "block forever" check (2d4c:0285-0294) is two sequential
+ *     CMP-against--1 tests on the HIGH word (BP+0x12) then LOW word
+ *     (BP+0x10) of the 32-bit `timeout` alone; `datatype` never
+ *     participates in it.
+ * The old, swapped version happened to behave correctly at 3 of its 4
+ * call sites purely because both ends of the confusion canceled out (the
+ * literal bitmask value was passed positionally where the mislabeled
+ * body expected it) -- but it meant every payload copy pulled a fixed
+ * 399 bytes into `data` regardless of the caller's real buffer size. For
+ * recieve_ipx()'s frame-by-frame game-data packets that overruns the
+ * caller's ~0x76-byte MAZE_LOG_STRUCT destination by ~280 bytes on every
+ * single received packet in any actual (comms!=0) network game -- a
+ * stack buffer overflow into main_loop()'s other locals, consistent with
+ * the erratic movement/scoreboard corruption only seen in real IPX play.
+ * All non-inert call sites (join()'s reply-wait, and both calls inside
+ * recieve()) have been updated alongside this fix; see their own
+ * comments for the corrected argument values.
  */
 int recieve_int(int setup, char far * data, int size, int datatype, long timeout)
 {
@@ -148,14 +195,14 @@ int recieve_int(int setup, char far * data, int size, int datatype, long timeout
 
     for (;;) {
         for (i = 0; i < 5; i++) {
-            if (_rec_ecb[i].inUseFlag == 0 && (size & _rec_ipx[i].data[0]) != 0) {
-                memcpy(data, &_rec_ipx[i].data[1], sizeof(_rec_ipx[i].data) - 1);
+            if (_rec_ecb[i].inUseFlag == 0 && (datatype & _rec_ipx[i].data[0]) != 0) {
+                memcpy(data, &_rec_ipx[i].data[1], size);
                 receive_packet(&_rec_ecb[i], &_rec_ipx[i], sizeof(IPX_HEADER));
                 return (int) _rec_ipx[i].data[0];
             }
         }
 
-        if (timeout != -1L || datatype != -1) {
+        if (timeout != -1L) {
             if (elapsed >= timeout) {
                 return 0;
             }
@@ -189,7 +236,10 @@ int join(int far * num)
     int i;
     unsigned int probe;
 
+    net_dbg("join: start\r\n");
+
     if (init_net() == 0) {
+        net_dbg("join: init_net FAIL\r\n");
         return -1;
     }
 
@@ -199,7 +249,9 @@ int join(int far * num)
     memset(_rec_ipx, 0, sizeof(_rec_ipx));
 
     pack_type = open_socket(_socket_no, &probe);
+    net_dbg("join: socket %x -> %d\r\n", _socket_no, pack_type);
     if (pack_type != 0 && pack_type != 0xff) {
+        net_dbg("join: socket FAIL\r\n");
         return -1;
     }
 
@@ -210,14 +262,27 @@ int join(int far * num)
     broadcast_address(address);
     init_ipx_ecb_send(&_join_ecb, &_join_ipx, address, 0xb);
     send_packet(&_join_ecb, &_join_ipx, 0xb);
+    net_dbg("join: broadcast sent\r\n");
 
     if (wait_for_ecb(&_join_ecb, 2000) == 0) {
-        pack_type = recieve_int(0, data, 5, 20000, 0L);
+        /* CORRECTED (2d4c:00e3-010e): the real pushes are size=0x38
+           (0x37 = sizeof(CON_INFO) + 1 tag byte -- the max reply
+           payload), datatype=5 (bitmask for tags 1=accept | 4=reject),
+           timeout=0x4e20 (20000L). The previous version passed
+           (size=5, datatype=20000, timeout=0L) -- the bitmask value (5)
+           landed in the right spot by coincidence against the old,
+           swapped recieve_int() body, but timeout=0L meant this call
+           returned "nobody answered" after a single instant check,
+           never giving a real peer time to reply. */
+        pack_type = recieve_int(0, data, 0x38, 5, 20000L);
     } else {
         pack_type = 0;
+        net_dbg("join: send never completed\r\n");
     }
+    net_dbg("join: reply pack_type=%d\r\n", pack_type);
 
     if (pack_type == 4) {
+        net_dbg("join: socket busy, retry\r\n");
         close_socket(_socket_no);
         _socket_no++;
         return join(num);
@@ -225,6 +290,7 @@ int join(int far * num)
 
     if (pack_type == 0) {
         /* nobody answered -- we're the first station */
+        net_dbg("join: alone, host slot 0\r\n");
         memcpy(_gl_tab.address[0], _source_address, 10);
         _gl_tab.inuse[0] = 1;
         _our_id = 0;
@@ -242,12 +308,15 @@ int join(int far * num)
             }
         }
         if (!found) {
+            net_dbg("join: id not in table\r\n");
             printf("Can't find our Id! Aborting");
             return -1;
         }
+        net_dbg("join: accepted slot %d\r\n", _our_id);
     }
 
     *num = num_of_connections();
+    net_dbg("join: done id=%d n=%d\r\n", _our_id, *num);
     return _our_id;
 }
 
@@ -323,23 +392,32 @@ void join_new_user(char far * data)
         return;
     }
 
+    net_dbg("jnu: request seen\r\n");
+
     claimed = 0;
     for (i = 0; i < 5; i++) {
         if (_gl_tab.inuse[i] == 0) {
             memcpy(_gl_tab.address[i], data, 10);
             _gl_tab.inuse[i] = 1;
             claimed = 1;
+            net_dbg("jnu: claimed slot %d\r\n", i);
             break;
         }
+    }
+    if (!claimed) {
+        net_dbg("jnu: table full\r\n");
     }
 
     get_next_address(next_address, _our_id);
 
     if (memcmp(next_address, data, 10) == 0) {
+        net_dbg("jnu: reply tag=%d\r\n", claimed ? 1 : 4);
         _joinreply_ipx.data[0] = claimed ? 1 : 4;
         init_ipx_ecb_send(&_joinreply_ecb, &_joinreply_ipx, next_address, 0x38);
         memcpy(&_joinreply_ipx.data[1], &_gl_tab, sizeof(CON_INFO));
         send_packet(&_joinreply_ecb, &_joinreply_ipx, 0x38);
+    } else {
+        net_dbg("jnu: not our reply\r\n");
     }
 }
 
@@ -355,6 +433,7 @@ void disc_curr_user(char far * data)
     for (i = 0; i < 5; i++) {
         if (memcmp(data, _gl_tab.address[i], 10) == 0) {
             _gl_tab.inuse[i] = 0;
+            net_dbg("disc: slot %d\r\n", i);
             return;
         }
     }
@@ -371,8 +450,16 @@ int recieve(char far * data, int size)
     char scratch[400];
     int pack_type;
 
+    /* CORRECTED (2d4c:0532-0546): real pushes are size=0xb (11, the
+       join/disconnect payload -- a 10-byte address plus slack), datatype
+       =0x12 (bitmask for tags 2=join-request | 0x10=disconnect),
+       timeout=1L (one quick pass, non-blocking as the comment says). The
+       previous version's (size=0x12, datatype=0, timeout=0L) happened to
+       filter the right tags against the old swapped recieve_int() body
+       (0x12 landed in the bitmask role by coincidence) but copied a
+       fixed 399 bytes into `scratch` every call regardless. */
     do {
-        pack_type = recieve_int(0, scratch, 0x12, 0, 0L);
+        pack_type = recieve_int(0, scratch, 0xb, 0x12, 1L);
         if (pack_type == 2) {
             join_new_user(scratch);
         } else if (pack_type == 0x10) {
@@ -380,8 +467,27 @@ int recieve(char far * data, int size)
         }
     } while (pack_type != 0);
 
+    /* CORRECTED (2d4c:0577-058c): real pushes are size=<this function's
+       own `size` parameter, forwarded as-is -- the caller's real
+       destination capacity>, datatype=0x1a (bitmask for tags 2 | 8=data
+       | 0x10), timeout=1L. The do/while re-issues this call immediately
+       whenever it returns "nothing yet" (pack_type!=8), so a short
+       per-call timeout plus outer retrying is how the original blocks
+       "until data arrives" -- not one huge inner block. The previous
+       version passed (size=0x1a, datatype=-1, timeout=-1L): the bitmask
+       (0x1a) again landed right by coincidence, and datatype=-1 +
+       timeout=-1 both being -1 tripped the old (also wrong) "block
+       forever inside a single call" condition, so it happened to still
+       wait indefinitely -- but every successful receive copied a fixed
+       399 bytes into `data` regardless of the caller's real buffer size.
+       For recieve_ipx()'s frame-by-frame calls `data` points into the
+       middle of a ~0x76-byte MAZE_LOG_STRUCT on main_loop()'s stack, so
+       that fixed-399-byte copy overran it by roughly 280 bytes on every
+       single received game-data packet during real (comms!=0) network
+       play -- the most likely source of the movement/firing/scoreboard
+       corruption only seen there. */
     do {
-        pack_type = recieve_int(0, data, 0x1a, -1, -1L);
+        pack_type = recieve_int(0, data, size, 0x1a, 1L);
         if (pack_type == 2) {
             join_new_user(data);
         } else if (pack_type == 0x10) {
