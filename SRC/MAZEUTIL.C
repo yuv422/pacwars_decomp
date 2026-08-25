@@ -917,7 +917,21 @@ void fill_scoreboard(int i, MAZE_LOG_STRUCT far * maze_log, int offset)
     int radar_y;
     int sprite;
     int icon_sprite, icon_num;
+    int base_x;
 
+    /* base_x captures _max_x's value on entry (confirmed via disassembly
+       to be 0xf0, the maze viewport width, whenever this function is
+       called), matching the real code's iVar4. _max_x is temporarily
+       widened to _sc_width below for sprite mixing, then reset back to
+       0xf0 -- but the icon()/text256() calls and the "last hit by"
+       overlay all position relative to this saved *original* value, not
+       whatever _max_x currently holds. Only the box-fill and the main
+       ship sprite use x (= base_x + 6). Conflating the two caused the
+       icons/score/lives to be shifted +6px and the "last hit by" badge
+       to be positioned off using the temporarily-widened _max_x
+       (_sc_width + 0x16 instead of base_x + 0x16), corrupting the
+       scoreboard. */
+    base_x = _max_x;
     x = _max_x + 6;
     if (i == _wstation) {
         y = 8;
@@ -950,7 +964,7 @@ void fill_scoreboard(int i, MAZE_LOG_STRUCT far * maze_log, int offset)
         } else {
             sprite = 1;
         }
-        _sprites[0x4e0].spritex = _max_x + 0x16;
+        _sprites[0x4e0].spritex = base_x + 0x16;
         _sprites[0x4e0].spritey = y + 0x10;
         _sprites[0x4e0].spritew = _sprites[0x42b].spritew;
         _sprites[0x4e0].spriteh = _sprites[0x42b].spriteh;
@@ -958,44 +972,53 @@ void fill_scoreboard(int i, MAZE_LOG_STRUCT far * maze_log, int offset)
         mix_sprite(0x4e0, 0x35);
 
         if (i == _wstation) {
-            icon_num = (_warp_count > 0) ? _warp_count : 1;
-            icon_sprite = (_warp_count > 0) ? 0x454 : 0;
-            icon(x + 0xc, y, icon_sprite, icon_num);
+            /* icon()'s (sprite, num) args are swapped in the inactive
+               (count < 1) branch below versus what the raw disassembly
+               shows: real code passes num=0 (which makes icon() just
+               blank the slot, no digit drawn) and a throwaway sprite=1
+               (unused since num==0 short-circuits before the sprite is
+               ever drawn). Passing sprite=0/num=1 (as this file
+               previously did) instead drew sprite 0's graphic plus a
+               stray "1" digit for every inactive power-up slot --
+               the "0.1 0.1 ..." garbage seen on the scoreboard. */
+            icon_num = (_warp_count > 0) ? _warp_count : 0;
+            icon_sprite = (_warp_count > 0) ? 0x454 : 1;
+            icon(base_x + 0xc, y, icon_sprite, icon_num);
 
-            icon_num = (_ishot_count > 0) ? _ishot_count : 1;
-            icon_sprite = (_ishot_count > 0) ? 0x455 : 0;
-            icon(x + 0x1a, y, icon_sprite, icon_num);
+            icon_num = (_ishot_count > 0) ? _ishot_count : 0;
+            icon_sprite = (_ishot_count > 0) ? 0x455 : 1;
+            icon(base_x + 0x1a, y, icon_sprite, icon_num);
 
-            icon_num = (_visible_count > 0) ? _visible_count : 1;
-            icon_sprite = (_visible_count > 0) ? 0x456 : 0;
-            icon(x + 0x28, y, icon_sprite, icon_num);
+            icon_num = (_visible_count > 0) ? _visible_count : 0;
+            icon_sprite = (_visible_count > 0) ? 0x456 : 1;
+            icon(base_x + 0x28, y, icon_sprite, icon_num);
 
-            icon_num = (_grenade_count > 0) ? _grenade_count : 1;
-            icon_sprite = (_grenade_count > 0) ? 0x459 : 0;
-            icon(x + 0x2e, y - 9, icon_sprite, icon_num);
+            icon_num = (_grenade_count > 0) ? _grenade_count : 0;
+            icon_sprite = (_grenade_count > 0) ? 0x459 : 1;
+            icon(base_x + 0x2e, y - 9, icon_sprite, icon_num);
 
-            icon_num = (_shield_count > 0) ? _shield_count : 1;
-            icon_sprite = (_shield_count > 0) ? 0x458 : 0;
-            icon(x + 0x36, y, icon_sprite, icon_num);
+            icon_num = (_shield_count > 0) ? _shield_count : 0;
+            icon_sprite = (_shield_count > 0) ? 0x458 : 1;
+            icon(base_x + 0x36, y, icon_sprite, icon_num);
 
-            icon_num = (_missile_count > 0) ? _missile_count : 1;
-            icon_sprite = (_missile_count > 0) ? 0x457 : 0;
-            icon(x + 0x44, y, icon_sprite, icon_num);
+            icon_num = (_missile_count > 0) ? _missile_count : 0;
+            icon_sprite = (_missile_count > 0) ? 0x457 : 1;
+            icon(base_x + 0x44, y, icon_sprite, icon_num);
         }
         _max_x = 0xf0;
 
         if (maze_log->connection[i] == '\0') {
-            text256(x + 0x1a, y + 5, (unsigned char far *) "      ", 0xe, 0x35);
+            text256(base_x + 0x1a, y + 5, (unsigned char far *) "      ", 0xe, 0x35);
         } else {
             sprintf(text_str, "%6ld", (long) maze_log->score[i] * 10L);
-            text256(x + 0x1a, y + 5, (unsigned char far *) text_str, 0xe, 0x35);
+            text256(base_x + 0x1a, y + 5, (unsigned char far *) text_str, 0xe, 0x35);
         }
 
         if (maze_log->connection[i] == '\0') {
-            text256(x + 0x3a, y + 0xf, (unsigned char far *) "  ", 0xf, 0x35);
+            text256(base_x + 0x3a, y + 0xf, (unsigned char far *) "  ", 0xf, 0x35);
         } else {
             sprintf(text_str, "%2d", maze_log->men[i]);
-            text256(x + 0x3a, y + 0xf, (unsigned char far *) text_str, 0xf, 0x35);
+            text256(base_x + 0x3a, y + 0xf, (unsigned char far *) text_str, 0xf, 0x35);
         }
     }
 
