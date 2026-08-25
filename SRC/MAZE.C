@@ -788,32 +788,29 @@ void main_loop(void)
 
         restore_maze(&prev_log);
 
+        /* prev_log = cur_log, confirmed via raw disassembly at
+         * 14df:0dec: a memcpy(dest, src, 0x76) sitting exactly between
+         * restore_maze(&prev_log) (14df:0dd6, dest's own address
+         * BP-0x118 matches this memcpy's dest operand) and
+         * display_men(&cur_log) (14df:0dfa, whose argument BP-0xa2
+         * matches this memcpy's src operand) -- 0x76 == sizeof(MAZE_LOG_STRUCT).
+         * So the snapshot happens right here, *before* display_men()/
+         * display_shots()/etc. draw this frame's state, not after (an
+         * earlier pass placed it after the display_*() calls on
+         * "captures what's on screen" reasoning, which happened to
+         * still work but wasn't where the real binary puts it).
+         * Either placement keeps clear_shots() correct next frame,
+         * since what matters is only that this snapshot happens before
+         * the wall-collision shot-destroy logic further down mutates
+         * cur_log -- this is just the actual, disassembly-confirmed
+         * spot. */
+        prev_log = cur_log;
+
         display_men(&cur_log);
         display_shots(&cur_log);
         display_gold(&cur_log, bob_frame);
         display_token(&cur_log, bob_frame);
         room_animation(cur_log.sync, _hoffset, _voffset);
-
-        /* Snapshot exactly what's now on screen into prev_log, before
-         * any of the rest of this frame's logic (movement, wall-hit
-         * shot destruction, warp, explosions, ...) mutates cur_log
-         * further. This must happen HERE, right after the display_*()
-         * calls, not at the end of the loop: the local shot's own
-         * wall-collision handling below (the `ws->missile == 0` else
-         * branch) clears ws->shot to 0 the instant a plain shot hits a
-         * wall, but that happens *after* this frame's display_shots()
-         * already drew it one last time at its final position -- that's
-         * correct (the shot should still be visible for the frame it
-         * dies on), but it means cur_log.status[_wstation].shot is
-         * already 0 by the time anything downstream reads it. Snapshotting
-         * prev_log here, before that mutation, preserves "shot == 1, at
-         * the position actually drawn" for one more frame; next frame's
-         * clear_shots() (top of the next iteration, comparing prev_log
-         * against the freshly test_shots()-updated cur_log) then sees
-         * the real 1-to-0 transition and erases the sprite immediately,
-         * instead of only getting overdrawn whenever the player's own
-         * ship sprite happened to move across those same pixels. */
-        prev_log = cur_log;
 
         if (_explode_count == 0) {
             reversed = (_drunk == 1 && rand() % 3 == 0) ? 1 : 0;
