@@ -199,8 +199,14 @@ void show_256_cursor(int status)
 int edit_str(unsigned int far * inkey, unsigned int far * ext, int row, int col, char far * char_str, EDIT_TYPE type, int display)
 {
     char text_str[128];
-    int pos;            /* cursor offset into text_str, 0..text_len */
-    int text_len;
+    int pos;            /* cursor offset into text_str, 0..text_len-1 */
+    int text_len;        /* FIXED field width == strlen(char_str) at entry
+                           * (e.g. 12 for curr_name -- see clear_str(curr_name, 12)
+                           * at every MAZE.C call site); never changes during
+                           * editing, confirmed via raw disassembly at
+                           * 2b8d:0a19-0a21 (`if (n < length-1) n++`, i.e.
+                           * pos just stops advancing at the last cell
+                           * instead of the field growing). */
     int insert_mode;    /* 1 = insert, 0 = overwrite -- toggled by F2 */
     int idle_count;
     int cycle_index;
@@ -215,10 +221,11 @@ int edit_str(unsigned int far * inkey, unsigned int far * ext, int row, int col,
     cycle_index = 0;
 
     edit_text(type, row, col, (char far *) text_str);
-    pos_256_cursor(row, col);
-    show_256_cursor(1);
+
 
     for (;;) {
+        pos_256_cursor(row, col + pos);
+        show_256_cursor(1);
         /*
          * Poll for a key. While none is ready, cycle the secondary
          * "attract mode" display roughly every 11 iterations. Traced
@@ -305,50 +312,75 @@ int edit_str(unsigned int far * inkey, unsigned int far * ext, int row, int col,
         }
 
         if (key == 8) {
-            /* Backspace: delete the character left of the cursor */
-            if (pos > 0) {
-                pos--;
-                memmove(&text_str[pos], &text_str[pos + 1], strlen(&text_str[pos + 1]) + 1);
-                text_len--;
-                edit_text(type, row, col, (char far *) text_str);
-                pos_256_cursor(row, col + pos);
+            /* Backspace: erase the character left of the cursor and step
+             * back. text_str is a FIXED-WIDTH, space-padded field --
+             * confirmed via raw disassembly at 2b8d:0564-0630 that
+             * backspace pads with a space and shifts `pos` back rather
+             * than shrinking the string (no length change at all). The
+             * insert/overwrite split there (2b8d:05b9-0630 vs 0613-0629)
+             * matches this project's own insert_mode flag: insert mode
+             * shifts everything right of the cursor left by one (padding
+             * the now-vacant last cell with a space); overwrite mode just
+             * blanks the one cell under the cursor. */
+            if (pos > 0 || text_len == 1) {
+                if (text_len > 1) {
+                    edit_char(row, col + pos, ' ', 1);
+                    pos--;
+                }
+                if (insert_mode) {
+                    memmove(&text_str[pos], &text_str[pos + 1], text_len - pos - 1);
+                    text_str[text_len - 1] = ' ';
+                    edit_text(type, row, col, (char far *) text_str);
+                } else {
+                    text_str[pos] = ' ';
+                    edit_char(row, col + pos, ' ', 1);
+                }
             }
             continue;
         }
 
         if (key == 0) {
             /* Extended key -- dispatch on the scan code via the
-             * (reconstructed) 25-entry jump table. */
+             * (reconstructed) 25-entry jump table.
+             *
+             * None of the movement keys below call pos_256_cursor().
+             * Confirmed via get_xrefs_to that pos_256_cursor() is called
+             * exactly once in the whole real function -- at the initial
+             * setup above -- and never again; cursor_row/cursor_col
+             * (340e:f3a2/f3a4) are likewise written nowhere else. This
+             * field has no moving on-screen cursor bar at all: the only
+             * per-keystroke visual feedback is the single-cell
+             * edit_char() redraw done by the printable-character and
+             * backspace/del paths. The previous version's per-keystroke
+             * pos_256_cursor(row, col+pos) calls here didn't exist in the
+             * real binary and were drawing/erasing a cursor mark that had
+             * nothing to do with where characters actually land -- that
+             * stray draw is what was corrupting the line under the text. */
             unsigned int scan = *ext;
 
             if (scan == 0x4b) {
                 /* Left */
                 if (pos > 0) {
                     pos--;
-                    pos_256_cursor(row, col + pos);
                 }
             } else if (scan == 0x4d) {
                 /* Right */
-                if (pos < text_len) {
+                if (pos < text_len - 1) {
                     pos++;
-                    pos_256_cursor(row, col + pos);
                 }
             } else if (scan == 0x47) {
                 /* Home */
                 pos = 0;
-                pos_256_cursor(row, col + pos);
             } else if (scan == 0x4f) {
                 /* End */
-                pos = text_len;
-                pos_256_cursor(row, col + pos);
+                pos = text_len - 1;
             } else if (scan == 0x53) {
-                /* Del: delete the character under the cursor */
-                if (pos < text_len) {
-                    memmove(&text_str[pos], &text_str[pos + 1], strlen(&text_str[pos + 1]) + 1);
-                    text_len--;
-                    edit_text(type, row, col, (char far *) text_str);
-                    pos_256_cursor(row, col + pos);
-                }
+                /* Del: delete the character under the cursor -- same
+                 * fixed-width space-pad-and-shift as backspace, but
+                 * without moving the cursor. */
+                memmove(&text_str[pos], &text_str[pos + 1], text_len - pos - 1);
+                text_str[text_len - 1] = ' ';
+                edit_text(type, row, col, (char far *) text_str);
             } else if (scan == 0x3c) {
                 /* F2: toggle insert/overwrite mode */
                 insert_mode ^= 1;
@@ -365,20 +397,27 @@ int edit_str(unsigned int far * inkey, unsigned int far * ext, int row, int col,
             continue;
         }
 
-        /* Ordinary printable character */
+        /* Ordinary printable character. text_str never grows past its
+         * fixed text_len -- confirmed via raw disassembly at
+         * 2b8d:0a19-0a21 (`if (n < length-1) n++`; pos just stops
+         * advancing at the last valid cell instead of the field
+         * growing) and at 2b8d:09f7-0a09 (each keystroke redraws only
+         * the single character cell at col+pos via edit_char(), not the
+         * whole string via edit_text()). The previous version's
+         * unbounded memmove/text_len++ growth plus full-string
+         * edit_text() redraw is what let typed text run past the box
+         * the moment the name exceeded its real fixed width (12
+         * characters for curr_name). */
         if (key >= 0x20 && key <= 0x7e) {
-            if (insert_mode && text_len < (int) sizeof(text_str) - 1) {
-                memmove(&text_str[pos + 1], &text_str[pos], text_len - pos + 1);
-                text_len++;
+            if (insert_mode && pos < text_len - 1) {
+                memmove(&text_str[pos + 1], &text_str[pos], text_len - pos - 1);
+                edit_text(type, row, col, (char far *) text_str);
             }
             text_str[pos] = (char) key;
-            if (pos == text_len) {
-                text_str[pos + 1] = 0;
-                text_len++;
+            edit_char(row, col + pos, (char) key, 1);
+            if (pos < text_len - 1) {
+                pos++;
             }
-            pos++;
-            edit_text(type, row, col, (char far *) text_str);
-            pos_256_cursor(row, col + pos);
         }
     }
 }
