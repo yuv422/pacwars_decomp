@@ -1108,6 +1108,24 @@ void main_loop(void)
                 ishot_wait = 0;
             }
         }
+
+        /* Snapshot this frame's fully-finalized state into prev_log so
+         * next frame's clear_men()/clear_shots()/clear_gold()/
+         * clear_token()/restore_maze() calls (top of next iteration)
+         * know what was actually drawn and needs erasing. prev_log was
+         * previously only ever set once, via start_man(&prev_log)
+         * before this loop -- confirmed via grep, no other write to it
+         * anywhere in this file -- so every one of those clear_*()
+         * calls' "was present last frame, isn't now" guards compared
+         * against a permanently frame-0 snapshot (gold/tokens/shots
+         * never present that early) and never fired: shots stayed on
+         * screen after hitting a wall, and collected gold/tokens were
+         * never erased. Placed at the very end of the loop body (after
+         * this frame's own input/movement/explosion handling has
+         * finished mutating cur_log) so the snapshot reflects the
+         * fully-settled end-of-frame state, matching what clear_*()
+         * needs to diff against on the next pass. */
+        prev_log = cur_log;
     }
 }
 
