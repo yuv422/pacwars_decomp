@@ -72,6 +72,7 @@
 #include "GRAPH256.H"
 #include "MAZEUTIL.H"
 #include "MANEDIT.H"
+#include "HISCORE.H"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -203,7 +204,7 @@ int edit_str(unsigned int far * inkey, unsigned int far * ext, int row, int col,
     int insert_mode;    /* 1 = insert, 0 = overwrite -- toggled by F2 */
     int idle_count;
     int cycle_index;
-    int cycle_toggle;
+    HISCORE hiscore;
     int key;
 
     text_len = strlen(char_str);
@@ -212,7 +213,6 @@ int edit_str(unsigned int far * inkey, unsigned int far * ext, int row, int col,
     insert_mode = 1;
     idle_count = 0;
     cycle_index = 0;
-    cycle_toggle = 0;
 
     edit_text(type, row, col, (char far *) text_str);
     pos_256_cursor(row, col);
@@ -221,42 +221,79 @@ int edit_str(unsigned int far * inkey, unsigned int far * ext, int row, int col,
     for (;;) {
         /*
          * Poll for a key. While none is ready, cycle the secondary
-         * "attract mode" display roughly every 11 iterations -- best
-         * effort on the exact display/cycle_index bookkeeping (the
-         * original interleaves several counters here), but the
-         * dispatch below (display<0 / ==0 / >0) matches the
-         * confirmed calls to display_registered_company(),
-         * display_pacmen() and display_edit_pacman()/disp_hiscore().
+         * "attract mode" display roughly every 11 iterations. Traced
+         * from raw disassembly at 2b8d:00d5-0178 (Ghidra's decompiler
+         * mangles this whole function -- see the file banner -- so
+         * this section was stepped through instruction by instruction
+         * instead of trusted from decompile_function's output):
+         *
+         *   IMPORTANT: the idle-check must be read_key(), not
+         *   kb_event(). kb_event() (UTILS.C) opens with wait_kb(),
+         *   which busy-loops until a key is actually available before
+         *   returning -- it can never report "nothing yet", so a
+         *   `while (kb_event(...) == 0)` guard here blocks on the very
+         *   first call and this whole idle body never runs (this was
+         *   the bug behind "animations still not working": the
+         *   previous pass fixed the animation *dispatch* logic but
+         *   left the loop wrapped in a call that never lets it idle).
+         *   read_key() (DOS INT 21h AH=06h, direct console I/O) is the
+         *   real non-blocking poll -- confirmed both by its own
+         *   disassembly and by 2b8d:0171's real `_read_key()` call,
+         *   which only falls through to `_kb_event()` once a key is
+         *   confirmed pending. This exact read_key()-then-kb_event()
+         *   split is also how MAZEUTIL.C's choose_pacman() polls
+         *   (`if (f1 == 1 || read_key() == 1) { kb_event(...); }`).
+         *   - display == -1: no periodic redraw at all here (00e7/00e9
+         *     jump straight past both branches below); idle_count is
+         *     deliberately left un-reset in this case too, matching
+         *     the real code -- not currently exercised by any real
+         *     caller (every confirmed edit_str() call site passes
+         *     display 0 or >0), kept faithful anyway.
+         *   - display == 0 (the pacman-roster screen behind edit_name()'s
+         *     name box): display_pacmen(cycle_index) where cycle_index
+         *     is a plain 0/1 TOGGLE (XOR 1 at 2b8d:012e), not a 0..5
+         *     sweep -- the previous 0..5 version walked cycle_index
+         *     past display_pacmen()'s valid per-character frame range
+         *     (sprite_num = i*4 + offset + 4, only offsets 0/1 are
+         *     that character's own two walk-cycle frames; 2-5 read
+         *     into neighbouring characters' sprite slots), which is
+         *     why the roster looked frozen/garbled instead of
+         *     animating. The hiscore table is redrawn alongside it
+         *     every cycle too (2b8d:00fc-012b), which the previous
+         *     version omitted entirely for this branch.
+         *   - display > 0 (the sprite-editor's live preview icon):
+         *     display_edit_pacman(display - 1, 0, cycle_index) where
+         *     cycle_index sweeps 0..5 (2b8d:014c-0161) -- this part
+         *     was already correct, just simplified out the pointless
+         *     alternating-toggle-that-called-the-same-thing-either-way.
+         *   - otherwise (idle_count <= 10, i.e. most polls): the real
+         *     code scrolls the registered-company byline and delays
+         *     unconditionally (2b8d:0163-016e), regardless of
+         *     `display` -- previously this only ran for display==-1.
          */
-        while (kb_event(inkey, ext) == 0) {
+        while (read_key() == 0) {
             idle_count++;
             if (idle_count > 10) {
                 idle_count = 0;
-                if (display == -1) {
-                    display_registered_company();
-                    delay(0xf);
-                    read_key();
-                } else if (display == 0) {
+                if (display == 0) {
                     display_pacmen(cycle_index);
-                } else {
-                    cycle_toggle ^= 1;
-                    if (cycle_toggle) {
-                        display_edit_pacman(display - 1, 0, cycle_index);
-                    } else {
-                        /* best effort: real code alternates in a hiscore
-                         * table here (disp_hiscore) every few cycles;
-                         * simplified to the pacman-roster refresh, which
-                         * is the behavior every confirmed real caller
-                         * (all pass type==3) actually exercises. */
-                        display_edit_pacman(display - 1, 0, cycle_index);
+                    memset(&hiscore, 0, sizeof(HISCORE));
+                    get_hiscore(&hiscore);
+                    disp_hiscore(cycle_index, &hiscore);
+                    cycle_index ^= 1;
+                } else if (display != -1) {
+                    display_edit_pacman(display - 1, 0, cycle_index);
+                    cycle_index++;
+                    if (cycle_index >= 6) {
+                        cycle_index = 0;
                     }
                 }
-                cycle_index++;
-                if (cycle_index >= 6) {
-                    cycle_index = 0;
-                }
+            } else {
+                display_registered_company();
+                delay(0xf);
             }
         }
+        kb_event(inkey, ext);
 
         key = *inkey;
 
