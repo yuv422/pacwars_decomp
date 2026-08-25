@@ -794,6 +794,27 @@ void main_loop(void)
         display_token(&cur_log, bob_frame);
         room_animation(cur_log.sync, _hoffset, _voffset);
 
+        /* Snapshot exactly what's now on screen into prev_log, before
+         * any of the rest of this frame's logic (movement, wall-hit
+         * shot destruction, warp, explosions, ...) mutates cur_log
+         * further. This must happen HERE, right after the display_*()
+         * calls, not at the end of the loop: the local shot's own
+         * wall-collision handling below (the `ws->missile == 0` else
+         * branch) clears ws->shot to 0 the instant a plain shot hits a
+         * wall, but that happens *after* this frame's display_shots()
+         * already drew it one last time at its final position -- that's
+         * correct (the shot should still be visible for the frame it
+         * dies on), but it means cur_log.status[_wstation].shot is
+         * already 0 by the time anything downstream reads it. Snapshotting
+         * prev_log here, before that mutation, preserves "shot == 1, at
+         * the position actually drawn" for one more frame; next frame's
+         * clear_shots() (top of the next iteration, comparing prev_log
+         * against the freshly test_shots()-updated cur_log) then sees
+         * the real 1-to-0 transition and erases the sprite immediately,
+         * instead of only getting overdrawn whenever the player's own
+         * ship sprite happened to move across those same pixels. */
+        prev_log = cur_log;
+
         if (_explode_count == 0) {
             reversed = (_drunk == 1 && rand() % 3 == 0) ? 1 : 0;
 
@@ -1108,24 +1129,6 @@ void main_loop(void)
                 ishot_wait = 0;
             }
         }
-
-        /* Snapshot this frame's fully-finalized state into prev_log so
-         * next frame's clear_men()/clear_shots()/clear_gold()/
-         * clear_token()/restore_maze() calls (top of next iteration)
-         * know what was actually drawn and needs erasing. prev_log was
-         * previously only ever set once, via start_man(&prev_log)
-         * before this loop -- confirmed via grep, no other write to it
-         * anywhere in this file -- so every one of those clear_*()
-         * calls' "was present last frame, isn't now" guards compared
-         * against a permanently frame-0 snapshot (gold/tokens/shots
-         * never present that early) and never fired: shots stayed on
-         * screen after hitting a wall, and collected gold/tokens were
-         * never erased. Placed at the very end of the loop body (after
-         * this frame's own input/movement/explosion handling has
-         * finished mutating cur_log) so the snapshot reflects the
-         * fully-settled end-of-frame state, matching what clear_*()
-         * needs to diff against on the next pass. */
-        prev_log = cur_log;
     }
 }
 
