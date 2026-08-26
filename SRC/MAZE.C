@@ -22,6 +22,7 @@
 #include "MAZEDRAW.H"
 #include "MAZECOMM.H"
 #include "MAZEANIM.H"
+#include "IPXCOMM.H"
 #include <time.h>
 #include <stdlib.h>
 #include <string.h>
@@ -701,6 +702,8 @@ void main_loop(void)
 
         cur_ship_sprite = ship_base + bob_frame;
 
+        prev_wstation_status = cur_log.status[_wstation];
+
         if (recieve_ipx(&cur_log) == 0) {
             set_key_vect(0, NULL);
             set_mode(3);
@@ -708,7 +711,7 @@ void main_loop(void)
             exit(0);
             return;
         }
-
+        cur_log.status[_wstation] = prev_wstation_status;
         ws = &cur_log.status[_wstation];
 
         /* my previous shot got cleared out from under me (destroyed by
@@ -784,6 +787,9 @@ void main_loop(void)
         clear_shots(&cur_log, &prev_log);
         clear_gold(&cur_log, &prev_log);
         clear_token(&cur_log, &prev_log);
+        /* TODO are we missing some logic here??? at 14df:0d7f
+         * Ghidra looks like it has an if/else here with a call to _clear_animates
+         */
         clear_room_animation(cur_log.sync, _hoffset, _voffset);
 
         restore_maze(&prev_log);
@@ -810,6 +816,9 @@ void main_loop(void)
         display_shots(&cur_log);
         display_gold(&cur_log, bob_frame);
         display_token(&cur_log, bob_frame);
+        /* TODO another missing if/else at 14df:0e32
+         * the alternate flow calls _animate_room
+         */
         room_animation(cur_log.sync, _hoffset, _voffset);
 
         if (_explode_count == 0) {
