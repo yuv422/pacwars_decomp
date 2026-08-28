@@ -736,14 +736,24 @@ void pause_time(void)
     int count;
     int i, pos;
     char buf[4];
-    char letter;
+    /* NOTE: text256() (called via reg_text()) treats this as a
+       NUL-terminated string, not a single character -- it draws bytes
+       until it hits a 0. The real binary passes the address of a fixed
+       static byte here, whose neighbor in the data segment happens to be
+       zero. A plain local `char letter;` doesn't have that guarantee: on
+       the stack it landed right next to `buf`, so text256() kept reading
+       past the one intended character straight into buf's freshly
+       sprintf()'d countdown digit -- producing the reported trailing
+       digit on the "Register Today" line. Explicit 2-byte buffer with a
+       hard NUL terminator avoids relying on stack layout. */
+    char letter[2];
 
     w = 0x40;
     h = 0x28;
     count = 5;
     pause_box(&text_x, &text_y, &w, &h);
 
-    box_x = (0x140 - w) / 2;
+    box_x = (320 - w) / 2;
     box_y = (200 - h) / 2;
     msg_x = box_x + (w - 8) / 2;
     msg_y = box_y + (h - 8) / 2;
@@ -756,13 +766,25 @@ void pause_time(void)
         text256(msg_x, msg_y, (unsigned char far *) buf, 0xf, 0x1a);
         count--;
 
-        for (i = 0; i < 0x2d; i++) {
+        for (i = 0; i < 45; i++) {
             if (reg->registered == 1) {
                 display_registered_company();
             } else {
-                for (pos = 0; pos < (int) strlen(reg->reg_name); pos++) {
-                    letter = reg->reg_name[pos];
-                    reg_text(text_x, text_y, &letter, pos);
+                /* CORRECTED (2611:0xxx, confirmed via decompile: reads
+                   ((REGISTER_STRUCT*)_reg)->pReg_mess[pos + 0x11], i.e.
+                   reg_mess[1] -- 0x11==17==sizeof(reg_mess[0])). This nag
+                   popup's second line is the "Register Today" message
+                   (reg_mess[1]), not reg_name (which holds "Version!", the
+                   second line of the unrelated bottom-left registration
+                   status box). Confirmed by actually decoding the game's
+                   obfuscated reg data via decode_reg()'s own algorithm:
+                   reg_mess[1] == "Register Today", reg_name == "Version!".
+                   Scrolling reg_name here produced the reported
+                   "Version44"-looking garbled text in this popup. */
+                for (pos = 0; pos < (int) strlen(reg->reg_mess[1]); pos++) {
+                    letter[0] = reg->reg_mess[1][pos];
+                    letter[1] = 0;
+                    reg_text(text_x, text_y, letter, pos);
                 }
             }
             delay(0xf);
