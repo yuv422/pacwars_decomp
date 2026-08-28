@@ -1069,6 +1069,21 @@ int test_for_block(int x, int y, int w, int h, int hoff, int voff)
                 } else if (cell > 0) {
                     return cell;
                 }
+            } else {
+                /* CORRECTED (231e:24bd, around offset +0x8a): the raw
+                   disassembly sets `iVar3 = iVar1` (i.e. block_sp = cell)
+                   unconditionally BEFORE this exclusion check, and only
+                   overrides iVar3 inside the "not 0x36/0x37" branch above;
+                   when the branch is skipped, iVar3 keeps that default and
+                   is stored into block_sp right after this if/else. This
+                   file previously omitted the default entirely, so
+                   block_sp was left untouched (0, for a single-cell
+                   overlap) whenever the scanned cell was a one-way arrow
+                   -- meaning testy()'s dir==-1/0x36 and dir==1/0x37 checks
+                   could never actually see 0x36/0x37 and always fell
+                   through to "clear", letting players pass an arrow tile
+                   in both directions. */
+                block_sp = cell;
             }
             cur_row++;
         }
