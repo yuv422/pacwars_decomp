@@ -653,6 +653,30 @@ void main_loop(void)
        comparisons against it behave predictably */
     prev_log.status[_wstation].invisible = 0x7f;
     room_animation(cur_log.sync, _hoffset, _voffset);
+    /* CORRECTED (14df:098c-09b9): the real binary also calls the OLDER,
+       separate animate_room()/_animate_maze subsystem (MAZEUTIL.C/
+       MAZESPT.C) right after every room_animation() call -- confirmed via
+       get_xrefs_to on both room_animation() and animate_room(): every one
+       of animate_room()'s 5 real call sites sits immediately after one of
+       room_animation()'s 5 call sites. Ghidra's decompiler had hidden all
+       6 of these (this one plus the 4 further down, plus the matching
+       clear_animates() call) as "unreachable blocks" due to a compiler
+       tail-merging pattern (multiple call sites JMP into one shared code
+       block rather than each having their own CALL), which is why this
+       was missing from the reconstruction entirely -- not a dead/disabled
+       code path as earlier TODOs here speculated. The guard tested before
+       each real call (Stack[-0x2a], named `grenade_explode` by Ghidra's
+       correlation but unrelated to grenades here -- just a reused stack
+       slot) is set to 1 once at the top of main_loop and never reassigned
+       anywhere in the function, so it's unconditionally true in practice;
+       omitted here since an always-true guard has no behavioral effect.
+       This old system and the new room_animation() system independently
+       animate some of the SAME physical maze cells (confirmed by
+       comparing anim_room_0_0's row/col data in MAZEUTIL.C against
+       anim_obj_room_0_0's in MAZEANIM.C -- identical coordinates), which
+       is what produced the reported "duplicated gate animation" glitch:
+       that system's calls were simply never being made. */
+    animate_room(_animate_maze[_voffset][_hoffset], (MAZE_STRUCT far *) maze_def(_hoffset, _voffset));
 
     for (;;) {
         if (_esc != 0) {
@@ -787,10 +811,13 @@ void main_loop(void)
         clear_shots(&cur_log, &prev_log);
         clear_gold(&cur_log, &prev_log);
         clear_token(&cur_log, &prev_log);
-        /* TODO are we missing some logic here??? at 14df:0d7f
-         * Ghidra looks like it has an if/else here with a call to _clear_animates
-         */
         clear_room_animation(cur_log.sync, _hoffset, _voffset);
+        /* CORRECTED (14df:0d9b-0dc8): see the comment on the first
+           animate_room() call above -- clear_animates() is the erase-side
+           counterpart of the same old _animate_maze subsystem, and the
+           real binary calls it right after clear_room_animation(), right
+           before restore_maze(). */
+        clear_animates(_animate_maze[_voffset][_hoffset], (MAZE_STRUCT far *) maze_def(_hoffset, _voffset));
 
         restore_maze(&prev_log);
 
@@ -816,10 +843,10 @@ void main_loop(void)
         display_shots(&cur_log);
         display_gold(&cur_log, bob_frame);
         display_token(&cur_log, bob_frame);
-        /* TODO another missing if/else at 14df:0e32
-         * the alternate flow calls _animate_room
-         */
         room_animation(cur_log.sync, _hoffset, _voffset);
+        /* CORRECTED (14df:0e4e-0e7b): see the comment on the first
+           animate_room() call above. */
+        animate_room(_animate_maze[_voffset][_hoffset], (MAZE_STRUCT far *) maze_def(_hoffset, _voffset));
 
         if (_explode_count == 0) {
             reversed = (_drunk == 1 && rand() % 3 == 0) ? 1 : 0;
@@ -1047,6 +1074,9 @@ void main_loop(void)
                            &_sprites[cur_ship_sprite].spritex, &_sprites[cur_ship_sprite].spritey);
             draw_maze();
             room_animation(cur_log.sync, _hoffset, _voffset);
+            /* CORRECTED (14df:1f05-1f32): see the comment on the first
+               animate_room() call above. */
+            animate_room(_animate_maze[_voffset][_hoffset], (MAZE_STRUCT far *) maze_def(_hoffset, _voffset));
             ws->invisible = 0;
             _wkey = 0;
             warp_charge_pending = 1;
@@ -1066,6 +1096,9 @@ void main_loop(void)
                               _sprites[cur_ship_sprite].spritew, _sprites[cur_ship_sprite].spriteh) != 0) {
             draw_maze();
             room_animation(cur_log.sync, _hoffset, _voffset);
+            /* CORRECTED (14df:20a1-20ce): see the comment on the first
+               animate_room() call above. */
+            animate_room(_animate_maze[_voffset][_hoffset], (MAZE_STRUCT far *) maze_def(_hoffset, _voffset));
         }
 
         if (_explode_count < 1) {
@@ -1090,6 +1123,9 @@ void main_loop(void)
                                    &_sprites[cur_ship_sprite].spritey);
                     draw_maze();
                     room_animation(cur_log.sync, _hoffset, _voffset);
+                    /* CORRECTED (14df:2193-21c0): see the comment on the
+                       first animate_room() call above. */
+                    animate_room(_animate_maze[_voffset][_hoffset], (MAZE_STRUCT far *) maze_def(_hoffset, _voffset));
                     ws->invisible = 0;
                     _drunk = 0;
                     _visible = 0;

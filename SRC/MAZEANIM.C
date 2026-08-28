@@ -521,10 +521,12 @@ void room_animation_func(unsigned int sync, ANIM_OBJECT far * obj, MAZE_STRUCT f
 /*
  * Draws one animation frame's elements as sprites: for each element,
  * picks sprite slot 1 (a blank/clear sprite) if the underlying maze cell
- * is empty, otherwise slot (maze_cell_value + 0x40), sizes/positions it
- * from the reference block sprite at slot 0x41, then either or_sprite()s
- * it in (redraw==1, additive/masked blit) or display_sprite()s it
- * (straight blit). Reconstructed from 1a54:04c1-05bb.
+ * is currently empty, otherwise slot (element's own block value + 0x40)
+ * -- confirmed via disassembly (1a54:053b-0545) that the non-blank case
+ * re-reads the element record itself, not the maze cell a second time --
+ * sizes/positions it from the reference block sprite at slot 0x41, then
+ * either or_sprite()s it in (redraw==1, additive/masked blit) or
+ * display_sprite()s it (straight blit). Reconstructed from 1a54:04c1-05bb.
  */
 void room_frame(MAZE_STRUCT far * maze_ptr, int srow, int scol, int redraw, ANIM_FRAME far * frame)
 {
@@ -546,7 +548,16 @@ void room_frame(MAZE_STRUCT far * maze_ptr, int srow, int scol, int redraw, ANIM
         if (maze_ptr->def[row][col] == 0) {
             sprite_num = 1;
         } else {
-            sprite_num = maze_ptr->def[row][col] + 0x40;
+            /* CORRECTED (1a54:053b-0545): the real binary reloads the
+               element pointer and reads e->block here, NOT a second
+               maze_ptr->def[row][col] lookup. The def[] check just above
+               only tests "is this cell blank" -- the actual sprite index
+               comes from the element's own stored value. Reading def[]
+               again is observably different when another animated
+               object's update_frame() has since overwritten this same
+               cell (e.g. two overlapping gate elements), which produced
+               the reported "duplicated gate animation" symptom. */
+            sprite_num = e->block + 0x40;
         }
 
         _sprites[sprite_num].spritey = row * ref_h;
