@@ -43,23 +43,16 @@ int open_ipx(MAZE_LOG_STRUCT far * maze_log)
 {
     int num_connections;
 
-    net_dbg("open_ipx: comms=%d\r\n", comms);
-
     if (comms == 0) {
         init_man(1, maze_log);
     } else {
         _wstation = join(&num_connections);
-        net_dbg("open_ipx: ws=%d n=%d\r\n", _wstation, num_connections);
         if (_wstation == -1) {
-            net_dbg("open_ipx: join FAIL\r\n");
             return 0;
         }
         if (num_connections < 2) {
-            net_dbg("open_ipx: init+send\r\n");
             init_man(1, maze_log);
             send_next((char far *) &maze_log->type, 0x76);
-        } else {
-            net_dbg("open_ipx: skip init\r\n");
         }
     }
     return 1;

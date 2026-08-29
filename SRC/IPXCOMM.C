@@ -236,10 +236,7 @@ int join(int far * num)
     int i;
     unsigned int probe;
 
-    net_dbg("join: start\r\n");
-
     if (init_net() == 0) {
-        net_dbg("join: init_net FAIL\r\n");
         return -1;
     }
 
@@ -249,9 +246,7 @@ int join(int far * num)
     memset(_rec_ipx, 0, sizeof(_rec_ipx));
 
     pack_type = open_socket(_socket_no, &probe);
-    net_dbg("join: socket %x -> %d\r\n", _socket_no, pack_type);
     if (pack_type != 0 && pack_type != 0xff) {
-        net_dbg("join: socket FAIL\r\n");
         return -1;
     }
 
@@ -262,7 +257,6 @@ int join(int far * num)
     broadcast_address(address);
     init_ipx_ecb_send(&_join_ecb, &_join_ipx, address, 0xb);
     send_packet(&_join_ecb, &_join_ipx, 0xb);
-    net_dbg("join: broadcast sent\r\n");
 
     if (wait_for_ecb(&_join_ecb, 2000) == 0) {
         /* CORRECTED (2d4c:00e3-010e): the real pushes are size=0x38
@@ -277,12 +271,9 @@ int join(int far * num)
         pack_type = recieve_int(0, data, 0x38, 5, 20000L);
     } else {
         pack_type = 0;
-        net_dbg("join: send never completed\r\n");
     }
-    net_dbg("join: reply pack_type=%d\r\n", pack_type);
 
     if (pack_type == 4) {
-        net_dbg("join: socket busy, retry\r\n");
         close_socket(_socket_no);
         _socket_no++;
         return join(num);
@@ -290,7 +281,6 @@ int join(int far * num)
 
     if (pack_type == 0) {
         /* nobody answered -- we're the first station */
-        net_dbg("join: alone, host slot 0\r\n");
         memcpy(_gl_tab.address[0], _source_address, 10);
         _gl_tab.inuse[0] = 1;
         _our_id = 0;
@@ -308,15 +298,12 @@ int join(int far * num)
             }
         }
         if (!found) {
-            net_dbg("join: id not in table\r\n");
             printf("Can't find our Id! Aborting");
             return -1;
         }
-        net_dbg("join: accepted slot %d\r\n", _our_id);
     }
 
     *num = num_of_connections();
-    net_dbg("join: done id=%d n=%d\r\n", _our_id, *num);
     return _our_id;
 }
 
@@ -392,32 +379,23 @@ void join_new_user(char far * data)
         return;
     }
 
-    net_dbg("jnu: request seen\r\n");
-
     claimed = 0;
     for (i = 0; i < 5; i++) {
         if (_gl_tab.inuse[i] == 0) {
             memcpy(_gl_tab.address[i], data, 10);
             _gl_tab.inuse[i] = 1;
             claimed = 1;
-            net_dbg("jnu: claimed slot %d\r\n", i);
             break;
         }
-    }
-    if (!claimed) {
-        net_dbg("jnu: table full\r\n");
     }
 
     get_next_address(next_address, _our_id);
 
     if (memcmp(next_address, data, 10) == 0) {
-        net_dbg("jnu: reply tag=%d\r\n", claimed ? 1 : 4);
         _joinreply_ipx.data[0] = claimed ? 1 : 4;
         init_ipx_ecb_send(&_joinreply_ecb, &_joinreply_ipx, next_address, 0x38);
         memcpy(&_joinreply_ipx.data[1], &_gl_tab, sizeof(CON_INFO));
         send_packet(&_joinreply_ecb, &_joinreply_ipx, 0x38);
-    } else {
-        net_dbg("jnu: not our reply\r\n");
     }
 }
 
@@ -433,7 +411,6 @@ void disc_curr_user(char far * data)
     for (i = 0; i < 5; i++) {
         if (memcmp(data, _gl_tab.address[i], 10) == 0) {
             _gl_tab.inuse[i] = 0;
-            net_dbg("disc: slot %d\r\n", i);
             return;
         }
     }
