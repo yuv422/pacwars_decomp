@@ -309,6 +309,25 @@ void main(int argc, char *argv[])
     setup_ir_sprite_buffer();
     load_font();
     alloc_maze_editor_mem();
+
+    /* NOTE (14df:041f, confirmed via get_xrefs_to on alloc_map_animation):
+       this call was missing from the earlier reconstruction entirely --
+       Ghidra's decompile of main() failed outright ("Low-level Error:
+       Overlapping input varnodes"), so this function list was rebuilt by
+       hand from the raw call sequence and this one call was skipped.
+       Without it, every _animate_maze_rooms[][] entry's
+       obj[i].prev_frame_buffer (used by update_frame() in MAZEANIM.C to
+       stash the maze cell's prior value before overwriting it with the
+       current animation frame) is left at its compiled-in initial value
+       instead of a real calloc()'d scratch buffer, so update_map_animation()
+       writes each frame's "previous cell" snapshot through a bogus
+       pointer -- a latent memory-corruption bug whose visible symptom
+       (stray solid-colour blocks, e.g. the "blue rectangle" appearing near
+       a room's animated cells at the start of a game) depends on whatever
+       happened to occupy that memory, which differs run to run depending
+       on incidental allocation history. */
+    alloc_map_animation();
+
     set_clip_window(0);
     set_mode(0x13);
     menu_choice = pacwars_menu(menu_choice);
@@ -635,6 +654,8 @@ void main_loop(void)
                   &_sprites[ship_base].spritex, &_sprites[ship_base].spritey);
 
     memset(&cur_log, 0, sizeof(MAZE_LOG_STRUCT));
+    prev_log = cur_log;
+
     draw_maze();
     draw_scoreboard();
 
