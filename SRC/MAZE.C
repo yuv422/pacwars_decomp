@@ -756,12 +756,30 @@ void main_loop(void)
             exit(0);
             return;
         }
-        cur_log.status[_wstation] = prev_wstation_status;
         ws = &cur_log.status[_wstation];
+
+        /* CORRECTED (14df:0a29-0ad5): the restore of cur_log.status[_wstation]
+           from prev_wstation_status must happen AFTER this check and the
+           warp_charge_pending handling below, not before -- confirmed via
+           disassembly: the add_score() call at 14df:0aa2 sits between the
+           post-recieve_ipx() field extractions (0a29-0a94, comparing
+           prev_wstation_status's shot/missile/grenade fields against the
+           *freshly-received* cur_log.status[_wstation], not an
+           already-restored copy of the old value) and the restore memcpy
+           itself, which doesn't run until 14df:0ad0 -- after both this
+           check and the warp_charge_pending decrement. Restoring first (as
+           an earlier pass here did) makes ws->shot/missile/grenade
+           identical to prev_wstation_status's before the comparison ever
+           runs, so the "my previous shot got cleared out from under me by
+           another station" penalty could never fire. There is also no
+           second snapshot anywhere in the real sequence (an earlier
+           `prev_wstation_status = *ws;` here, sitting after this block, had
+           no disassembly counterpart and has been removed). */
 
         /* my previous shot got cleared out from under me (destroyed by
            another station's shot) -- dock a point, but only for a plain
-           unguided/non-grenade shot */
+           unguided/non-grenade shot. Compares the pre-recieve_ipx() snapshot
+           against the just-received network state. */
         if (prev_wstation_status.shot == 1 && ws->shot != prev_wstation_status.shot &&
             ws->missile == 0 && ws->grenade == 0) {
             add_score(_wstation, -1, &cur_log);
@@ -772,7 +790,10 @@ void main_loop(void)
             _warp_count--;
         }
 
-        prev_wstation_status = *ws;
+        /* now restore this station's own authoritative local state, which
+           recieve_ipx() may have just overwritten with stale/garbage
+           network data for our own slot */
+        cur_log.status[_wstation] = prev_wstation_status;
 
         /* publish this frame's sprite index/room/position into the
            network packet */
