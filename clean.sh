@@ -1,3 +1,7 @@
 #!/bin/bash
 cd "$(dirname "$0")"
-SDL_VIDEODRIVER=dummy dosbox-x -conf dosbox/dosbox-clean.conf
+
+rm BUILD/*.OBJ
+rm BUILD/*.MAP
+rm BUILD/BUILD.LOG
+rm BUILD/PACWARS.EXE
