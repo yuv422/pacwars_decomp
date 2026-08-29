@@ -1,0 +1,69 @@
+
+
+
+							PacWars
+							-------
+
+At last the best version of Pacwars is here.   Finally  after months of  waiting
+we have managed to get a file server up and running.  
+
+!! HOT OFF THE PRESS !!!
+
+Pacwars now functions using IPX - this  should  mean  that instead of only being
+useable on NETWARE 2.15 ADVANCED you  should  now be able to play Pacwars across
+most of the Netware range.  
+
+This latest version has bug  fixes galore as  well as extensions to the maze and
+sprite editors. A major addition is the ability to have background or foreground 
+graphics - nice to  hide behind objects and  jump out  on unsuspecting PacPeople.  
+Block copy and move  facilities have now  been added to the  maze editor to make 
+creating rooms simpler.
+
+The main bug that stopped the  last version from working turned out to be really
+easy to fix ( It's a lot easier to debug when you  have the server  there )  and 
+this version does seem a lot faster than an earlier one that we were using.
+
+Again I  would  like  to  mention  that we  would be  interested  in seeing  any 
+Pac - creations,   so  far we have  received one  (PacDoc).  They  will  all  be 
+gratefully received /admired /discarded.  The same applies for maze definitions. 
+The best will be distributed to registered users and included in future versions.
+'Fame At Last, eh!'.  Maze definitions are held in MSPRITES.DAT  and  the Sprite 
+definitions in .PAC files if you do want to send them in. 
+ 
+Incorporated in this version are the following suggestions:
+
+		Increased High Score - now 655,000+
+G C		Grenade - select fire and run for the next room
+G		Warping Pearl - when shot may WARP to another location
+G C		Shield - Protects the wearer from bullets in one direction only
+		Warp - ghost pacman FEATURE has been removed
+		Party - Shoot the beer and everyone in the room Parties.
+		Glue -  Shoot the glue and everyone in the room gets stuck.
+
+Thanks to G - Grey Tide Systems & C - Compuware for the above.
+
+Ten wonderful people have registered Pacwars so far, excuse me while I faint.
+Who says Shareware's a failure.  How  am I  supposed to  keep the programming
+team on chinese meals  on that.  On the subject  of  registration, Profitplan
+went into liquidation on the 6th November  1990,  anyone who  registered with 
+Profitplan after that date should write to the liquidator Moores Rowland, at
+the address supplied in the documentation, requesting the return of their 
+cheque.
+
+Under development by other members of the team are:
+
+		PacWars 3D - all your favourite characters in glorious 3 Dimensions,
+                     Nice graphics but, don't hold your breath.
+
+		TankWars   - Multi-User Tank Battle, authentic right down to the 
+                     primitive graphics.
+
+
+The idea of all this is to stimulate the creative juices of programmers around
+the world to write some decent games for Novell.  And allow me to get on with 
+some work and make a living.  Till next time I can be contacted on CIX c/o 
+
+                 aitken@cix.cix.UUCP
+
+IAIN 
+
