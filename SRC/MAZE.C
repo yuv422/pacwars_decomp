@@ -401,6 +401,24 @@ void main(int argc, char *argv[])
             break;
         }
 
+        /* FIX (user-diagnosed, not disassembly-traceable): without this,
+           returning from a sub-screen by pressing Escape (confirmed with
+           "Edit Characters", i.e. choose_edit_pacman()/edit_pacman())
+           could carry a leftover buffered keystroke into the freshly
+           redrawn pacwars_menu() below. pacwars_menu() does call
+           kb_flush() itself before it starts polling, but that wasn't
+           enough to prevent the stray key from being seen as an
+           immediate Escape at the main-menu level, which sets _esc=1
+           there too and drops straight out of the outer while(_esc==0)
+           loop into exit(0) -- i.e. the whole game quitting to DOS
+           instead of just returning to the main menu. Every function
+           along this path (choose_edit_pacman, edit_pacman, this switch,
+           pacwars_menu) was individually verified byte-for-byte against
+           the real disassembly and matches the original exactly, so
+           whatever the original's actual behavior here, flushing again
+           right at the point of return -- before _esc is cleared and the
+           menu is redrawn -- reliably fixes it. */
+        kb_flush();
         _esc = 0;
         set_mode(0x13);
         menu_choice = pacwars_menu(menu_choice);
