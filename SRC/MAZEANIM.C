@@ -104,7 +104,19 @@ static ANIM_OBJECT anim_obj_room_1_2[] = {
     { -1, 0, 0, 0, 0, 0, 0, 0, 0 }
 };
 
-static ANIM_OBJECT anim_obj_room_2_0[] = {
+/*
+ * CORRECTED naming: this is the torch_flicker-only room (4 entries, all
+ * animate==6). Previously named anim_obj_room_2_0 and placed at
+ * _animate_maze_rooms[2][0] -- confirmed via read_memory that its real
+ * address (340e:1077) is actually the [2][1] slot's pointer target, not
+ * [2][0]'s (340e:10bd, which holds the drip/blink room below instead).
+ * The two arrays' table placement had been swapped; renamed/reordered to
+ * match the real memory layout rather than just swapping the table
+ * entries, so the array names stay truthful. This was the root cause of
+ * the reported "acid drip and blink animation frames are displayed on
+ * the wrong room" bug.
+ */
+static ANIM_OBJECT anim_obj_room_2_1[] = {
     { 3, 1, 13, 1, 0, 6, 1, 0, 0 },
     { 3, 1, 4, 10, 1, 6, 1, 0, 0 },
     { 3, 1, 4, 20, 0, 6, 1, 0, 0 },
@@ -112,7 +124,13 @@ static ANIM_OBJECT anim_obj_room_2_0[] = {
     { -1, 0, 0, 0, 0, 0, 0, 0, 0 }
 };
 
-static ANIM_OBJECT anim_obj_room_2_1[] = {
+/*
+ * CORRECTED naming: the chemical_drip + chad_chalk ("blink") room.
+ * Previously named anim_obj_room_2_1 and placed at
+ * _animate_maze_rooms[2][1] -- its real address (340e:10bd) is actually
+ * the [2][0] slot's pointer target. See the comment above.
+ */
+static ANIM_OBJECT anim_obj_room_2_0[] = {
     { 3, 1, 2, 6, 0, 7, 1, 0, 0 },
     { 3, 1, 21, 19, 0, 8, 1, 0, 0 },
     { -1, 0, 0, 0, 0, 0, 0, 0, 0 }
