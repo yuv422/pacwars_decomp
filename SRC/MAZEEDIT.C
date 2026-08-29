@@ -1944,11 +1944,25 @@ void draw_maze_box(void)
     int y;
     int font;
 
+    /* CORRECTED (1f61:341b-3439): the real binary's counting loop counts
+       ONE MORE than the number of real (non-NULL) entries -- it does
+       `BX = SI; INC SI; <check text_str[BX]>`, so SI has already been
+       bumped past the current slot before the NULL-terminator check ever
+       runs, and the post-loop SI value used for the box's height/position
+       is left one higher than the number of real lines (e.g. 3 lines here
+       -> SI ends at 4, not 3). A prior pass here used the "clean" 0-based
+       count (matching the number of real lines exactly), which undersizes
+       and mispositions the box by a full 8px: too short, and shifted 8px
+       further down the screen, causing the last line of text to be drawn
+       past row 200 (off the bottom of the physical screen) instead of
+       comfortably inside the box with a 4px margin like the original.
+       Replicated exactly via `count + 1` below; the text-drawing loop
+       itself is unaffected (it already iterates only the real entries). */
     for (count = 0; text_str[count] != NULL; count++) {
     }
-    y = _max_y - count * 8;
-    trfbox(0xf0, y, 0x50, count * 8, 0);
-    trbox(0xf0, y, 0x50, count * 8, 0xe);
+    y = _max_y - (count + 1) * 8;
+    trfbox(0xf0, y, 0x50, (count + 1) * 8, 0);
+    trbox(0xf0, y, 0x50, (count + 1) * 8, 0xe);
     y += 4;
 
     font = SetTextFont(-1);
@@ -1974,11 +1988,14 @@ void draw_block_box(void)
     int y;
     int font;
 
+    /* CORRECTED (1f61:34fd-351b): same off-by-one box-sizing quirk as
+       draw_maze_box() above -- see that function's comment for the full
+       disassembly-traced explanation. Real count ends up (real lines + 1). */
     for (count = 0; text_str[count] != NULL; count++) {
     }
-    y = _max_y - count * 8;
-    trfbox(0xf0, y, 0x50, count * 8, 0);
-    trbox(0xf0, y, 0x50, count * 8, 0xe);
+    y = _max_y - (count + 1) * 8;
+    trfbox(0xf0, y, 0x50, (count + 1) * 8, 0);
+    trbox(0xf0, y, 0x50, (count + 1) * 8, 0xe);
     y += 4;
 
     font = SetTextFont(-1);
@@ -2004,11 +2021,14 @@ void draw_block_box2(void)
     int y;
     int font;
 
+    /* CORRECTED (1f61:35df-35fd): same off-by-one box-sizing quirk as
+       draw_maze_box() above -- see that function's comment for the full
+       disassembly-traced explanation. Real count ends up (real lines + 1). */
     for (count = 0; text_str[count] != NULL; count++) {
     }
-    y = _max_y - count * 8;
-    trfbox(0xf0, y, 0x50, count * 8, 0);
-    trbox(0xf0, y, 0x50, count * 8, 0xe);
+    y = _max_y - (count + 1) * 8;
+    trfbox(0xf0, y, 0x50, (count + 1) * 8, 0);
+    trbox(0xf0, y, 0x50, (count + 1) * 8, 0xe);
     y += 4;
 
     font = SetTextFont(-1);
@@ -2036,11 +2056,14 @@ void draw_attrib_box(void)
     int y;
     int font;
 
+    /* CORRECTED (1f61:36c1-36df): same off-by-one box-sizing quirk as
+       draw_maze_box() above -- see that function's comment for the full
+       disassembly-traced explanation. Real count ends up (real lines + 1). */
     for (count = 0; text_str[count] != NULL; count++) {
     }
-    y = _max_y - count * 8;
-    trfbox(0xf0, y, 0x50, count * 8, 0);
-    trbox(0xf0, y, 0x50, count * 8, 0xe);
+    y = _max_y - (count + 1) * 8;
+    trfbox(0xf0, y, 0x50, (count + 1) * 8, 0);
+    trbox(0xf0, y, 0x50, (count + 1) * 8, 0xe);
     y += 4;
 
     font = SetTextFont(-1);
@@ -2068,11 +2091,14 @@ void draw_block_range_box(void)
     int y;
     int font;
 
+    /* CORRECTED (1f61:37a3-37c1): same off-by-one box-sizing quirk as
+       draw_maze_box() above -- see that function's comment for the full
+       disassembly-traced explanation. Real count ends up (real lines + 1). */
     for (count = 0; text_str[count] != NULL; count++) {
     }
-    y = _max_y - count * 8;
-    trfbox(0xf0, y, 0x50, count * 8, 0);
-    trbox(0xf0, y, 0x50, count * 8, 0xe);
+    y = _max_y - (count + 1) * 8;
+    trfbox(0xf0, y, 0x50, (count + 1) * 8, 0);
+    trbox(0xf0, y, 0x50, (count + 1) * 8, 0xe);
     y += 4;
 
     font = SetTextFont(-1);
