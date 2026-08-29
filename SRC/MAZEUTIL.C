@@ -335,11 +335,6 @@ void display_registered_company(void);
  */
 void display_pacmen(int offset)
 {
-    static char pacname[10][13] = {
-        "PacMan    ", "PacPsycho ", "PacRat    ", "PacTart   ",
-        "PacBaby   ", "PacRambo  ", "PacPerv   ", "PacTurd   ",
-        "PacBiggles", "PacBum    "
-    };
     int i;
     int sprite_num;
 
@@ -348,7 +343,21 @@ void display_pacmen(int offset)
         _sprites[sprite_num].spritex = 0x14;
         _sprites[sprite_num].spritey = i * 0x11 + 2;
         display_sprite(sprite_num);
-        text256(0x2c, i * 0x11 + 8, (unsigned char far *) pacname[i], 0xf, 0);
+        /* CORRECTED (2611:02a8-02b2): the string address pushed to
+           text256() is computed as `i*0xd + 0x24be` -- i.e. the address of
+           the GLOBAL _pacname[i] (MAZESPT.C, same 0x24be base confirmed via
+           read_memory in that file's banner comment), not a private copy.
+           An earlier pass here declared a local `static char
+           pacname[10][13]` with the same compiled-in default text and read
+           from that instead, which happened to look right in a fresh game
+           but silently diverged from _pacname the moment names were loaded
+           from msprites.dat (load_names(), called from load_all_sprites()
+           at startup) or edited and saved via the in-game name editor
+           (MANEDIT.C) -- this roster/select screen would keep showing the
+           stale compiled-in defaults forever regardless of what was
+           actually on disk or in the live _pacname array every other
+           screen reads from. */
+        text256(0x2c, i * 0x11 + 8, (unsigned char far *) _pacname[i], 0xf, 0);
         if (i % 3 == 0) {
             display_registered_company();
         }
