@@ -460,8 +460,9 @@ int choose_edit_maze(int far * hoff, int far * voff)
 {
     int curr_hoff, curr_voff;
     int prev_vsize;
-    char vsize_str[2];
+    static char vsize_str[2];
     unsigned int inkey, ext;
+    unsigned int blink_count;
 
     curr_hoff = *hoff;
     curr_voff = *voff;
@@ -477,7 +478,23 @@ int choose_edit_maze(int far * hoff, int far * voff)
     display_scroll();
     hilite_room(1, curr_hoff, curr_voff);
 
+    blink_count = 0;
+
     do {
+        /*
+         * NOTE (1f61:0781-078c): a per-iteration counter that increments
+         * and wraps back to 0 past 10, with no other read of it anywhere
+         * in this function's real disassembly (0713-0aac) -- confirmed via
+         * a full instruction-by-instruction trace after the bad switch-
+         * jump-table fix, not just an earlier decompiler artifact. Kept
+         * for fidelity to the real stack frame ([BP-6] in the original);
+         * it has no observable effect on control flow or drawing here.
+         */
+        blink_count++;
+        if (blink_count > 10) {
+            blink_count = 0;
+        }
+
         prev_vsize = _VSIZE;
 
         if (curr_voff == -1 && curr_hoff == 1) {
@@ -495,101 +512,120 @@ int choose_edit_maze(int far * hoff, int far * voff)
             vsize_str[0] = (char) _VSIZE + '0';
             vsize_str[1] = 0;
             display_maze_rows(-1, vsize_str);
-        }
-
-        if ((curr_voff != -1 || curr_hoff != 1) && read_key() == 1) {
+        } else {
             /*
-             * NOTE: Ghidra's decompiler produced a large block of garbage
-             * here (raw INT21/INT1A software-interrupt calls, __stklen
-             * manipulation, zeroing a "mask_buffer", and literally a
-             * re-invocation of _main()/_exit()) gated behind this branch.
-             * The unconditional jump it decompiled from targets 0x1000:0072,
-             * deep in the Borland C startup segment, and doesn't fit this
-             * function's local addressing at all -- it's almost certainly
-             * unrelated crt0 code that got mis-attributed into this
-             * function's control-flow graph, not real program logic. Every
-             * structurally-similar function in this codebase (choose_pacman,
-             * pacwars_menu) just reads the pending key event here, so
-             * that's what's reconstructed below instead of the bogus block.
-             */
-            kb_event(&inkey, &ext);
-
-            if ((inkey == 0x1b || _esc == 1) && (curr_voff != -1 || curr_hoff != 0)) {
-                inkey = 0;
-                ext = 0x47;
-                _esc = 0;
-                kb_flush();
-            }
-            if (inkey == 0 && ext == 0x4d &&
-                ((curr_voff == -1 && curr_hoff < 1) ||
-                 (curr_voff > -1 && curr_hoff < _HSIZE - 1))) {
-                hilite_room(0, curr_hoff, curr_voff);
-                curr_hoff++;
-                hilite_room(1, curr_hoff, curr_voff);
-            }
-            if (inkey == 0 && ext == 0x4b && curr_hoff > 0) {
-                hilite_room(0, curr_hoff, curr_voff);
-                curr_hoff--;
-                hilite_room(1, curr_hoff, curr_voff);
-            }
-            if (inkey == 0 && ext == 0x48 && curr_voff > -1) {
-                hilite_room(0, curr_hoff, curr_voff);
-                if ((_room_offset == 1 && curr_voff == 1) ||
-                    (_room_offset == 2 && curr_voff == 2)) {
-                    _room_offset--;
-                    display_rooms();
-                }
-                curr_voff--;
-                if (curr_voff < 0) {
-                    curr_hoff = 0;
-                }
-                hilite_room(1, curr_hoff, curr_voff);
-            }
-            if (inkey == 0 && ext == 0x50 && curr_voff < _VSIZE - 1) {
-                hilite_room(0, curr_hoff, curr_voff);
-                if ((_room_offset == 0 && curr_voff == 1) ||
-                    (_room_offset == 1 && curr_voff == 2)) {
-                    _room_offset++;
-                    display_rooms();
-                } else if (curr_voff == -1) {
-                    curr_hoff++;
-                }
-                curr_voff++;
-                hilite_room(1, curr_hoff, curr_voff);
-            }
-            if (inkey == 0 && ext == 0x47 && (curr_hoff != 0 || curr_voff != -1)) {
-                hilite_room(0, curr_hoff, curr_voff);
-                curr_hoff = 0;
-                curr_voff = -1;
-                if (_room_offset > 0) {
-                    _room_offset = 0;
-                    display_rooms();
-                }
-                hilite_room(1, 0, -1);
-            }
-            if (inkey == 0 && ext == 0x4f &&
-                (curr_hoff != _HSIZE - 1 || curr_voff != _VSIZE - 1)) {
-                hilite_room(0, curr_hoff, curr_voff);
-                curr_hoff = _HSIZE - 1;
-                curr_voff = _VSIZE - 1;
-                _room_offset = _VSIZE - 2;
-                display_rooms();
-                hilite_room(1, curr_hoff, curr_voff);
-            }
-            if (inkey == 0xd && curr_voff == -1 && curr_hoff == 0) {
-                display_filestatus(1, 1);
-                save_all_sprites();
-                display_filestatus(0, 1);
-                inkey = 0;
-            }
-            if ((inkey == 0x1b || _esc == 1) && (curr_voff != -1 || curr_hoff != 0)) {
-                inkey = 0;
-                _esc = 0;
-                curr_voff = -1;
-                curr_hoff = 0;
+             * CORRECTED (1f61:080b-081f, re-traced instruction by
+             * instruction now that the bad switch-jump-table entries the
+             * user removed in Ghidra no longer corrupt this function's
+             * disassembly): a previous pass here nested the ENTIRE arrow/
+             * escape/enter-handling block below inside
+             * `if ((curr_voff != -1 || curr_hoff != 1) && read_key() == 1)`,
+             * treating "no pending key" and "currently editing the VSIZE
+             * digit" as the same gate. They are not. The real binary's
+             * read_key()==1 check (1f61:0815-081d) ONLY gates whether we
+             * skip past the entire rest of the loop body straight to
+             * display_scroll()/delay() (the JMP at 081f, whose apparent
+             * target "0x1000:0072" is just Ghidra's canonical-address
+             * encoding of the real in-segment target 1f61:0a62 wrapping
+             * past 0xffff, confirmed via get_xrefs_from -- not a real jump
+             * into crt0). That check is skipped ENTIRELY (not merely
+             * satisfied) whenever curr_voff==-1 && curr_hoff==1, in which
+             * case execution falls straight through into the kb_event()
+             * gate and every if(inkey==...) block below using the
+             * simulated "down arrow" (inkey=0, ext=0x4b) set above --
+             * exactly the case this bug broke: after editing the VSIZE
+             * digit, the simulated down-arrow that's supposed to move the
+             * cursor off the digit widget never actually ran, because it
+             * was nested inside a condition that's false in precisely
+             * that state. The (curr_voff != -1 || curr_hoff != 1) gate
+             * still applies, but only to the kb_event() call itself
+             * (1f61:0822-082a) -- everything from the 0x1b/escape check
+             * onward is unconditional. */
+            if (read_key() != 1) {
+                goto skip_input;
             }
         }
 
+        if (curr_voff != -1 || curr_hoff != 1) {
+            kb_event(&inkey, &ext);
+        }
+
+        if ((inkey == 0x1b || _esc == 1) && (curr_voff != -1 || curr_hoff != 0)) {
+            inkey = 0;
+            ext = 0x47;
+            _esc = 0;
+            kb_flush();
+        }
+        if (inkey == 0 && ext == 0x4d &&
+            ((curr_voff == -1 && curr_hoff < 1) ||
+             (curr_voff > -1 && curr_hoff < _HSIZE - 1))) {
+            hilite_room(0, curr_hoff, curr_voff);
+            curr_hoff++;
+            hilite_room(1, curr_hoff, curr_voff);
+        }
+        if (inkey == 0 && ext == 0x4b && curr_hoff > 0) {
+            hilite_room(0, curr_hoff, curr_voff);
+            curr_hoff--;
+            hilite_room(1, curr_hoff, curr_voff);
+        }
+        if (inkey == 0 && ext == 0x48 && curr_voff > -1) {
+            hilite_room(0, curr_hoff, curr_voff);
+            if ((_room_offset == 1 && curr_voff == 1) ||
+                (_room_offset == 2 && curr_voff == 2)) {
+                _room_offset--;
+                display_rooms();
+            }
+            curr_voff--;
+            if (curr_voff < 0) {
+                curr_hoff = 0;
+            }
+            hilite_room(1, curr_hoff, curr_voff);
+        }
+        if (inkey == 0 && ext == 0x50 && curr_voff < _VSIZE - 1) {
+            hilite_room(0, curr_hoff, curr_voff);
+            if ((_room_offset == 0 && curr_voff == 1) ||
+                (_room_offset == 1 && curr_voff == 2)) {
+                _room_offset++;
+                display_rooms();
+            } else if (curr_voff == -1) {
+                curr_hoff++;
+            }
+            curr_voff++;
+            hilite_room(1, curr_hoff, curr_voff);
+        }
+        if (inkey == 0 && ext == 0x47 && (curr_hoff != 0 || curr_voff != -1)) {
+            hilite_room(0, curr_hoff, curr_voff);
+            curr_hoff = 0;
+            curr_voff = -1;
+            if (_room_offset > 0) {
+                _room_offset = 0;
+                display_rooms();
+            }
+            hilite_room(1, 0, -1);
+        }
+        if (inkey == 0 && ext == 0x4f &&
+            (curr_hoff != _HSIZE - 1 || curr_voff != _VSIZE - 1)) {
+            hilite_room(0, curr_hoff, curr_voff);
+            curr_hoff = _HSIZE - 1;
+            curr_voff = _VSIZE - 1;
+            _room_offset = _VSIZE - 2;
+            display_rooms();
+            hilite_room(1, curr_hoff, curr_voff);
+        }
+        if (inkey == 0xd && curr_voff == -1 && curr_hoff == 0) {
+            display_filestatus(1, 1);
+            save_all_sprites();
+            display_filestatus(0, 1);
+            inkey = 0;
+        }
+        if ((inkey == 0x1b || _esc == 1) && (curr_voff != -1 || curr_hoff != 0)) {
+            inkey = 0;
+            _esc = 0;
+            curr_voff = -1;
+            curr_hoff = 0;
+        }
+
+skip_input:
         display_scroll();
         delay(0xf);
     } while (_esc == 0 && inkey != 0x1b && inkey != 0xd);
